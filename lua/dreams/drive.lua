@@ -24,7 +24,7 @@ drive.Register("drive_dreams", {
 
 	StartMove = function(self, mv, cmd)
 		local ply = self.Player
-		ply:SetMoveType(MOVETYPE_NOCLIP) 
+		ply:SetMoveType(MOVETYPE_NOCLIP)
 
 		mv:SetVelocity(ply:GetAbsVelocity())
 		mv:SetOrigin(ply:GetNetworkOrigin())
@@ -59,7 +59,8 @@ drive.Register("drive_dreams", {
 			vel = Vector(0, 0, 0)
 		end
 
-		vel:Add(-Vector(0, 0, 800 * FrameTime())) // grav
+		if vel.z < 0 then vel:Set(Vector(vel.x, vel.y, math.min(vel.z, -1) / 0.9)) end
+		vel:Add(Vector(0, 0, -600 * FrameTime()))
 		mv:SetVelocity(vel)
 
 	end,
@@ -82,7 +83,8 @@ drive.Register("drive_dreams", {
 			local worg = rorg + woff
 			local rvel_len = rvel:Length()
 			local hit = intersectrayplane(worg + norm * rvel_len, -norm, s.plane[1], norm)
-			local fhit = norm:IsEqualTol(Vector(0, 0, 1), 0.3) and intersectrayplane(rorg + Vector(0, 0, 1) * rvel_len, Vector(0, 0, -1), s.plane[1], norm)
+			local fhit = norm:IsEqualTol(Vector(0, 0, 1), 0.3)
+			 and intersectrayplane(rorg + Vector(0, 0, 1) * rvel_len * 2, Vector(0, 0, -1), s.plane[1], norm)
 			local wd, fd = hit and (worg - hit + norm):Dot(norm) or 0, fhit and (rorg - fhit + norm):Dot(norm) or 0
 			if not fhit and hit and (hit:DistToSqr(worg) < 17 ^ 2 or wd < 0 and wd > -2) or fhit and (fhit:DistToSqr(rorg) < 1 or fd < 0 and fd > -4) then
 				local a, b, c, d = unpack(s.vertices)
@@ -91,7 +93,7 @@ drive.Register("drive_dreams", {
 					if fhit then
 						onfloor = true
 						rorg = Vector(rorg.x, rorg.y, fhit.z)
-						//rvel = Vector(rvel.x, rvel.y, 0.1)
+						rvel = Vector(rvel.x, rvel.y, 0)
 					else
 						rorg = hit - Vector(0, 0, 32) + norm * 16
 					end
@@ -101,13 +103,15 @@ drive.Register("drive_dreams", {
 
 
 		org = prop:RLTW(rorg)
+		vel = prop:LocalToWorldAngles(rvel:Angle()):Forward() * rvel:Length()
 
 		if onfloor and mv:KeyPressed(IN_JUMP) then
-			vel = Vector(vel.x, vel.y, 700)
+			vel = Vector(vel.x, vel.y, 400)
 			mv:SetVelocity(vel)
 		end
 
 		mv:SetOrigin(org + vel * FrameTime())
+		mv:SetVelocity(vel)
 	end,
 
 	FinishMove =  function( self, mv )

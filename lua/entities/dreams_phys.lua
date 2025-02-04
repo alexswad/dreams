@@ -17,7 +17,8 @@ function ENT:Initialize()
 end
 
 function ENT:UpdatePhys()
-	self.Phys = util.JSONToTable(file.Read("dreams/rain_hallway.dat", "DATA"))
+	self.Phys = util.JSONToTable(file.Read("dreams/" .. GetGlobalString("dreams_phys") .. ".dat", "DATA"))
+	
 end
 
 function ENT:SetupDataTables()
@@ -91,16 +92,6 @@ hook.Add("PostDrawOpaqueRenderables", "draw_dream", function()
 
 		render.SetLightingMode(0)
 		cam.IgnoreZ(false)
-	end
-end)
-
-hook.Add("PlayerDriveAnimate", "dreams", function(ply)
-	if ply:GetDrivingMode() == util.NetworkStringToID"drive_dreams" then
-		local act, seq = GAMEMODE:CalcMainActivity(ply, ply:GetVelocity())
-		act = GAMEMODE:TranslateActivity(ply, act)
-		print(act, ply:SelectWeightedSequence(act))
-		ply:ResetSequence(ply:SelectWeightedSequence(act))
-		return true
 	end
 end)
 

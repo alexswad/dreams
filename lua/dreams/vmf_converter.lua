@@ -37,7 +37,7 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 		return a
 	end
 
-	local off = Vector(122, 0, 87)
+	local off = Vector(0, 0, 0)
 
 	local solids = {}
 	for k, v in pairs(string.Explode("solid", f)) do
@@ -123,4 +123,6 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 	name = name[#name]
 	file.CreateDir("dreams/")
 	file.Write("dreams/" .. name:Trim():StripExtension() .. ".dat", util.TableToJSON(test_sides))
+
+	SetGlobalString("dreams_phys", name:Trim():StripExtension():Trim())
 end, autocomplete)

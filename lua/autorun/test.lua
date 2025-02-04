@@ -5,7 +5,7 @@ end
 if SERVER then
 	concommand.Add("start", function(ply)
 		local model = ents.Create("dreams_phys")
-		model:SetModel("models/rooms/props/rain_hallway_30.mdl")
+		model:SetModel("models/scp106/rooms/" .. GetGlobalString("dreams_phys") .. ".mdl")
 		//model:PhysicsInit(SOLID_VPHYSICS)
 		//model:SetPos(ply:GetPos())
 		model:SetRealPos(ply:GetPos())
@@ -13,13 +13,13 @@ if SERVER then
 		model:Spawn()
 		model:EnableCustomCollisions()
 		
-		local sky = ents.Create("prop_dynamic")
-		sky:SetModel("models/rooms/props/rain_hallway_29.mdl")
-		sky:AddEFlags(EFL_IN_SKYBOX)
-		sky:SetPos(ply:GetPos())
-		//sky:SetAngles(Angle(0, 0, 180))
-		sky:Spawn()
-		sky:SetModelScale(1)
+		-- local sky = ents.Create("prop_dynamic")
+		-- -- sky:SetModel("models/rooms/props/rain_hallway_29.mdl")
+		-- -- sky:AddEFlags(EFL_IN_SKYBOX)
+		-- -- sky:SetPos(ply:GetPos())
+		-- -- //sky:SetAngles(Angle(0, 0, 180))
+		-- -- sky:Spawn()
+		-- -- sky:SetModelScale(1)
 
 		for k,v in pairs (player.GetAll()) do
 			v:AddEFlags(EFL_IN_SKYBOX)
