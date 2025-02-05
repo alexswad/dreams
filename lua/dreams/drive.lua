@@ -2,10 +2,6 @@
 local intersectrayplane = util.IntersectRayWithPlane
 local abs = math.abs
 
-local vmax = function(num1, num2)
-	return abs(num1) < abs(num2) and num2 or num1
-end
-
 local normal = function(c, b, a)
 	return ((b - a):Cross(c - a)):GetNormalized()
 end
@@ -16,6 +12,7 @@ local function check(a, b, c, p)
 	return cr1:Dot(cr2) >= 0
 end
 
+local woff = Vector(0, 0, 32)
 drive.Register("drive_dreams", {
 	CalcView = function(self, view)
 		view.angles = self.Player:EyeAngles()
@@ -33,7 +30,7 @@ drive.Register("drive_dreams", {
 		local pos = Vector(0, 0, 0)
 		local speed = 20
 		if cmd:KeyDown(IN_SPEED) then
-			speed = 30
+			speed = 40
 		end
 	
 		if cmd:KeyDown(IN_MOVERIGHT) then
@@ -77,8 +74,7 @@ drive.Register("drive_dreams", {
 		local rvel = rnorm * vel:Length()
 
 		local onfloor
-		local woff = Vector(0, 0, 32)
-		for _, s in pairs(prop.Phys or {}) do
+		for _, s in ipairs(prop.Phys or {}) do
 			local norm = normal(s.plane[1], s.plane[2], s.plane[3])
 			local worg = rorg + woff
 			local rvel_len = rvel:Length()
@@ -86,7 +82,7 @@ drive.Register("drive_dreams", {
 			local fhit = norm:IsEqualTol(Vector(0, 0, 1), 0.3)
 			 and intersectrayplane(rorg + Vector(0, 0, 1) * rvel_len * 2, Vector(0, 0, -1), s.plane[1], norm)
 			local wd, fd = hit and (worg - hit + norm):Dot(norm) or 0, fhit and (rorg - fhit + norm):Dot(norm) or 0
-			if not fhit and hit and (hit:DistToSqr(worg) < 17 ^ 2 or wd < 0 and wd > -2) or fhit and (fhit:DistToSqr(rorg) < 1 or fd < 0 and fd > -4) then
+			if not fhit and hit and (hit:DistToSqr(worg) < 16 ^ 2 or wd < 0 and wd > -2) or fhit and (fhit:DistToSqr(rorg) < 1 or fd < 0 and fd > -4 * abs(rvel.z / 10)) then
 				local a, b, c, d = unpack(s.vertices)
 				local e = fhit or hit
 				if check(a, b, c, e) and check(b, c, a, e) and check(c, d, a, e) and check(d, a, b, e) then
