@@ -50,7 +50,7 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 			end
 		end
 		table.insert(solids, str)
-	end 
+	end
 
 	function remove_up(t, done)
 		done = done or {}
@@ -107,22 +107,30 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 	test_solids = solids
 
 	test_sides = {}
+	local min, max
+	local function minmax(min, max, vec)
+		return Vector(math.min(min.x, vec.x), math.min(min.y, vec.y), math.min(min.z, vec.z)), Vector(math.max(max.x, vec.x), math.max(max.y, vec.y), math.max(max.z, vec.z))
+	end
 	for k, v in pairs(solids) do
 		for a, side in pairs(v.sides) do
+			for _, vert in pairs(side.vertices_plus) do
+				min, max = minmax(min or vert, max or vert, vert)
+			end
 			if not side.material or side.material:lower():find("nodraw") then continue end
 			side = {
-				vertices = side.vertices_plus,
+				verts = side.vertices_plus,
 				plane = side.plane
 			}
 			table.insert(test_sides, side)
 		end
 	end
+	test_sides.OBB = {min, max}
 
 	PrintTable(test_sides)
 	local name = string.Explode("/", args[1])
 	name = name[#name]
 	file.CreateDir("dreams/")
-	file.Write("dreams/" .. name:Trim():StripExtension() .. ".dat", util.TableToJSON(test_sides))
+	file.Write("dreams/" .. name:Trim():StripExtension() .. ".dat", util.Compress(util.TableToJSON(test_sides)))
 
 	SetGlobalString("dreams_phys", name:Trim():StripExtension():Trim())
 end, autocomplete)
