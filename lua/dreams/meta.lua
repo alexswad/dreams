@@ -178,7 +178,6 @@ end
 ///////////////////////////////////////////////
 
 function DREAMS:Draw(debug)
-	debug = 1
 	local ply = LocalPlayer()
 	ply:SetPos(ply:GetDTVector(31))
 	ply:SetNetworkOrigin(ply:GetDTVector(31))
@@ -253,7 +252,6 @@ function DREAMS:Draw(debug)
 						min, max = minmax(min, max, b)
 					end
 					s.bvert = {min, max}
-					PrintTable(s.bvert)
 				end
 
 				if debug == 1 or debug == 3 then
@@ -320,6 +318,52 @@ function DREAMS:StartMove(ply, mv, cmd)
 
 	if vel.z < 0 then v_SetUnpacked(vel, vel.x, vel.y, math_max(math_min(vel.z, -1) * 1.111, -1400)) end
 	v_Add(vel, Vector(0, 0, -self.Gravity * FrameTime()))
+	mv_SetVelocity(mv, vel)
+	return true
+end
+
+// For Debug
+function DREAMS:StartMoveFly(ply, mv, cmd)
+	mv_SetVelocity(mv, ply_GetAbsVelocity(ply))
+	mv_SetOrigin(mv, mv_GetOrigin(mv))
+
+	local ang = mv_GetMoveAngles(mv)
+	local pos = Vector(0, 0, 0)
+	local speed = self.MoveSpeed
+	if cmd_KeyDown(cmd, IN_SPEED) then
+		speed = self.ShiftSpeed
+	end
+
+	if cmd_KeyDown(cmd, IN_MOVERIGHT) then
+		v_Add(pos, ang:Right())
+	end
+
+	if cmd_KeyDown(cmd, IN_MOVELEFT) then
+		v_Add(pos, -ang:Right())
+	end
+
+	if  cmd_KeyDown(cmd, IN_FORWARD) then
+		v_Add(pos, Angle(0, ang.y, 0):Forward())
+	end
+
+	if cmd_KeyDown(cmd, IN_BACK) then
+		v_Add(pos, -Angle(0, ang.y, 0):Forward())
+	end
+
+	if cmd_KeyDown(cmd, IN_JUMP) then
+		v_Add(pos, Vector(0, 0, 1))
+	end
+
+	if cmd_KeyDown(cmd, IN_DUCK) then
+		v_Add(pos, Vector(0, 0, -1))
+	end
+
+	v_Normalize(pos)
+	local vel = ply_GetAbsVelocity(ply) * 0.9 + pos * speed
+	if v_IsEqualTol(vel, vector_origin, 3) then
+		vel:Zero()
+	end
+
 	mv_SetVelocity(mv, vel)
 	return true
 end

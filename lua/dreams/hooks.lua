@@ -54,7 +54,7 @@ if SERVER then
 	hook.Add("PlayerSilentDeath", "!!Dreams_Death", ondeath)
 else
 	local last_dream = 0
-	hook.Add("Think", "Dreams_Think", function()
+	hook.Add("Think", "!!!Dreams_Think", function()
 		local ply = LocalPlayer()
 		if not ply.IsDreaming then return end
 		local dream = ply:GetDream()
@@ -76,37 +76,37 @@ else
 	end)
 end
 
-hook.Add("SetupMove", "Dreams_setupmove", function(ply, cmd, mv)
+hook.Add("SetupMove", "!!!Dreams_setupmove", function(ply, cmd, mv)
 	if not ply:IsDreaming() then return end
 	local dream = ply:GetDream()
 	return dream:StartMove(ply, cmd, mv)
 end)
 
-hook.Add("Move", "Dreams_domove", function(ply, mv)
+hook.Add("Move", "!!!Dreams_domove", function(ply, mv)
 	if not ply:IsDreaming() then return end
 	local dream = ply:GetDream()
 	return dream:DoMove(ply, mv)
 end)
 
-hook.Add("FinishMove", "Dreams_finishmove", function(ply, mv)
+hook.Add("FinishMove", "!!!Dreams_finishmove", function(ply, mv)
 	if not ply:IsDreaming() then return end
 	local dream = ply:GetDream()
 	return dream:FinishMove(ply, mv)
 end)
 
-hook.Add("PlayerSwitchWeapon", "Dreams_SwitchWeapon", function(ply, old, new)
+hook.Add("PlayerSwitchWeapon", "!!!Dreams_SwitchWeapon", function(ply, old, new)
 	if not ply:IsDreaming() then return end
 	local dream = ply:GetDream()
 	return dream:SwitchWeapon(ply, old, new)
 end)
 
-hook.Add("PrePlayerDraw", "Dreams_DrawPlayer", function(ply, flags)
+hook.Add("PrePlayerDraw", "!!!Dreams_DrawPlayer", function(ply, flags)
 	if not ply:IsDreaming() then return end
 	local dream = ply:GetDream()
 	return dream:PrePlayerDraw(ply, flags)
 end)
 
-hook.Add("EntityTakeDamage", "Dreams_TakeDamage", function(ent, dmg)
+hook.Add("EntityTakeDamage", "!!!!Dreams_TakeDamage", function(ent, dmg)
 	if not IsValid(ent) or not ent:IsPlayer() or not ent:IsDreaming() then return end
 	local dream = ent:GetDream()
 	return dream:EntityTakeDamage(ent, dmg:GetAttacker(), dmg:GetInflictor(), dmg)
