@@ -1,0 +1,13 @@
+{
+	"title"		:	"SCP-106 Pocket Dimension",
+	"type"		:	"tool",
+	"tags"		:	["scenic", "cartoon"],
+	"ignore"	:
+	[
+		"*.psd",
+		"*.vcproj",
+		"*.svn*",
+		"*.png",
+		".git/*"
+	]
+}
