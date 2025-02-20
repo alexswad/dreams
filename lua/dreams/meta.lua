@@ -29,6 +29,8 @@ local mv_GetMoveAngles = mvmeta.GetMoveAngles
 local mv_GetOrigin = mvmeta.GetOrigin
 local mv_GetVelocity = mvmeta.GetVelocity
 
+local tbl_Count = table.Count
+
 local cmd_KeyDown = cmdmeta.KeyDown
 local ply_GetAbsVelocity = emeta.GetAbsVelocity
 local ply_GetDTVector = emeta.GetDTVector
@@ -69,7 +71,6 @@ local normal = function(c, b, a)
 end
 
 local function check(a, b, c, p)
-	if not a or not b then return true end
 	local cr1 = v_Cross(b - a, c - a)
 	local cr2 = v_Cross(b - a, p - a)
 	return v_Dot(cr1, cr2) >= 0
@@ -130,7 +131,6 @@ if SERVER then
 			self:SetNoTarget(false)
 			self:SetCollisionGroup(COLLISION_GROUP_NONE)
 			self:SetMoveType(MOVETYPE_WALK)
-			self:SetAvoidPlayers(self.Dreams_OLDAVP)
 			return
 		end
 
@@ -199,7 +199,7 @@ function DREAMS:Draw()
 	end
 
 	for k, v in ipairs(player.GetAll()) do
-		if not v:GetDreamID() == self.ID or v == ply then continue end
+		if v:GetDreamID() ~= self.ID or v == ply then continue end
 		render.SuppressEngineLighting(true)
 
 		v:SetNetworkOrigin(v:GetDTVector(31))
@@ -265,7 +265,7 @@ function DREAMS:StartMove(ply, mv, cmd)
 		v_Add(pos, -ang:Right())
 	end
 
-	if cmd_KeyDown(cmd, IN_FORWARD) then
+	if ply:IsBot() or cmd_KeyDown(cmd, IN_FORWARD) then
 		v_Add(pos, Angle(0, ang.y, 0):Forward())
 	end
 
@@ -280,7 +280,6 @@ function DREAMS:StartMove(ply, mv, cmd)
 	end
 
 	if vel.z < 0 then v_SetUnpacked(vel, vel.x, vel.y, math_max(math_min(vel.z, -1) * 1.111, -800)) end
-	v_Add(vel, Vector(0, 0, -self.Gravity * FrameTime()))
 	mv_SetVelocity(mv, vel)
 	return true
 end
@@ -302,21 +301,29 @@ function DREAMS:DoMove(ply, mv)
 			local fhit = v_IsEqualTol(norm, up, 0.3) and intersectrayplane(org + up * vel_len * 2, -up, plane[1], norm)
 			local wd, fd = hit and v_Dot(worg - hit + norm, norm) or 0, fhit and v_Dot(org - fhit + norm, norm) or 0
 
-			if not fhit and hit and (v_DistToSqr(hit, worg) < 17 ^ 2 or wd < 1 and wd > -2) or fhit and (v_DistToSqr(fhit, org) < 1 or fd < 0 and fd > -3 * math_abs(vel.z / 10)) then
+			if not fhit and hit and (v_DistToSqr(hit, worg) < 17 ^ 2 or wd < 10 and wd > -2) or fhit and (v_DistToSqr(fhit, org) < 1 or fd < 0 and fd > -3 * math_abs(vel.z / 10)) then
 				local verts = s.verts
-				local a, b, c, d, f = verts[1], verts[2], verts[3], verts[4], verts[5]
+				local n_verts = tbl_Count(verts)
 				local e = fhit or hit
-				if check(a, b, c, e) and check(b, c, a, e) and check(c, d, a, e) and check(d, a, b, e) and check(d, f, c) and check(f, a, d) then
-					if fhit then
-						onfloor = true
-						v_SetUnpacked(org, org.x, org.y, fhit.z)
-						v_SetUnpacked(vel, vel.x, vel.y, 0.1)
-						worg = org + woff
-					else
-						vel = vel - norm * v_Dot(vel, norm)
-						org = hit - woff + norm * 17
-						worg = org + woff
+
+				local dobreak
+				for i = 0, n_verts - 1 do
+					if not check(verts[i], verts[(i + 1) % n_verts], verts[(i + 2) % n_verts], e) then
+						dobreak = true
+						break
 					end
+				end
+				if dobreak then continue end
+
+				if fhit then
+					onfloor = true
+					v_SetUnpacked(org, org.x, org.y, fhit.z)
+					v_SetUnpacked(vel, vel.x, vel.y, 0.1)
+					worg = org + woff
+				else
+					vel = vel - norm * v_Dot(vel, norm)
+					org = hit - woff + norm * 17
+					worg = org + woff
 				end
 			end
 		end
@@ -354,18 +361,26 @@ end
 // FOR ALL THAT IS HOLY. PLEASE. DO NOT PATCH THIS.
 
 if CLIENT then
+	local open_chat = chat.Open
+	local close_chat = chat.Close
 	local chatbox
 	local cviewport
 	hook.Add("StartChat", "Dreams_gethuds", function()
 		if IsValid(chatbox) or (chatbox == false and chatbox ~= nil) then return end
 		timer.Simple(0.1, function()
-			chatbox = vgui.GetKeyboardFocus():GetParent():GetParent()
+			chatbox = IsValid(vgui.GetKeyboardFocus()) and vgui.GetKeyboardFocus():GetParent():GetParent()
 			if not IsValid(chatbox) or chatbox:GetClassName() ~= "CHudChat" then chatbox = false return end
 			cviewport = chatbox:GetParent()
 		end)
 	end)
 
+	local opened
 	function DREAMS:DrawHUD()
+		if not opened and chatbox == nil then
+			opened = true
+			open_chat(1)
+			timer.Simple(0.2, close_chat)
+		end
 		if chatbox and chatbox:GetClassName() == "CHudChat" then
 			chatbox:SetPaintedManually(true)
 			chatbox:PaintManual()
@@ -388,13 +403,12 @@ end
 
 if SERVER then
 	function DREAMS:Start(ply)
-		local start = ents.FindByClass("info_player_start")[1]
-		ply:SetPos(IsValid(start) and start:GetPos() + Vector(0, 0, 1) or vector_origin)
+		local starts = ents.FindByClass("info_player_start")
+		local start = starts[math.random(#starts)] or starts[1]
+		ply:SetPos((IsValid(start) and start:GetPos() + Vector(0, 0, 1) or vector_origin) + Angle(0, math.Rand(1, 360), 45):Forward() * math.random(72, 120))
+		ply:DropToFloor()
 		ply:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 		ply:SetNoTarget(true)
-		ply:SetMoveType(MOVETYPE_NONE)
-		ply.Dreams_OLDAVP = ply:GetAvoidPlayers()
-		ply:SetAvoidPlayers(false)
 		ply:SetActiveWeapon(NULL)
 	end
 
@@ -406,7 +420,11 @@ else
 
 	function DREAMS:PrePlayerDraw(ply)
 		if ply:GetDreamID() ~= LocalPlayer():GetDreamID() then
-			ply:SetPos(ply:GetPos() + Vector(0, 0, -96))
+			if not LocalPlayer():IsDreaming() then
+				ply:SetPos(ply:GetPos() + Vector(0, 0, -96))
+			else
+				ply:SetRenderOrigin(nil)
+			end
 			return true
 		end
 	end
