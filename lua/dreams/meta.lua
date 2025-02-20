@@ -76,6 +76,10 @@ local function check(a, b, c, p)
 	return v_Dot(cr1, cr2) >= 0
 end
 
+local function minmax(xmin, xmax, vec)
+	return Vector(math.min(xmin.x, vec.x), math.min(xmin.y, vec.y), math.min(xmin.z, vec.z)), Vector(math.max(xmax.x, vec.x), math.max(xmax.y, vec.y), math.max(xmax.z, vec.z))
+end
+
 ///////////////////////////////////////////
 
 function pmeta:IsDreaming()
@@ -173,7 +177,8 @@ end
 
 ///////////////////////////////////////////////
 
-function DREAMS:Draw()
+function DREAMS:Draw(debug)
+	debug = 1
 	local ply = LocalPlayer()
 	ply:SetPos(ply:GetDTVector(31))
 	ply:SetNetworkOrigin(ply:GetDTVector(31))
@@ -182,7 +187,7 @@ function DREAMS:Draw()
 			v.CMDL = v.mdl and ClientsideModelSafe(v.mdl) or false
 			v.CMDL:SetNoDraw(true)
 		elseif v.CMDL == false then continue end
-		if ply.DreamRoom and ply.DreamRoom ~= v then continue end
+		if debug ~= 1 and ply.DreamRoom and ply.DreamRoom ~= v then continue end
 
 		render.SuppressEngineLighting(true)
 		render.SetAmbientLight(0, 0 , 0)
@@ -235,6 +240,40 @@ function DREAMS:Draw()
 
 		render.SuppressEngineLighting(false)
 	end
+
+	if debug == 1 or debug == 2 or debug == 3 then
+		for k, v in ipairs(self.Phys) do
+			if debug == 1 then
+				render.DrawWireframeBox(vector_origin, Angle(), v.OBB[1], v.OBB[2], Color(100, 0, 255), true)
+			end
+			for _, s in ipairs(v) do
+				if not s.bvert then
+					local min, max = s.verts[1], s.verts[1]
+					for a, b in pairs(s.verts) do
+						min, max = minmax(min, max, b)
+					end
+					s.bvert = {min, max}
+					PrintTable(s.bvert)
+				end
+
+				if debug == 1 or debug == 3 then
+					render.DrawWireframeBox(vector_origin, Angle(), s.bvert[1], s.bvert[2], Color(0, 150, 255), debug ~= 1)
+				end
+
+				if debug == 2 or debug == 3 then
+					local plane = s.plane
+					local norm = s.normal or normal(plane[1], plane[2], plane[3])
+					s.normal = norm
+					local middle = s.middle or (s.bvert[2] - s.bvert[1]) / 2 + s.bvert[1]
+					s.middle = middle
+
+					local rot, rot_end, rot_three = middle, middle + norm * 25, middle + norm * 50
+					render.DrawLine(rot, rot_end, Color(255, 0, 0), false)
+					render.DrawLine(rot_end, rot_three, Color(0, 255, 0), false)
+				end
+			end
+		end
+	end
 end
 
 function DREAMS:SetupFog()
@@ -279,7 +318,8 @@ function DREAMS:StartMove(ply, mv, cmd)
 		vel:Zero()
 	end
 
-	if vel.z < 0 then v_SetUnpacked(vel, vel.x, vel.y, math_max(math_min(vel.z, -1) * 1.111, -800)) end
+	if vel.z < 0 then v_SetUnpacked(vel, vel.x, vel.y, math_max(math_min(vel.z, -1) * 1.111, -1400)) end
+	v_Add(vel, Vector(0, 0, -self.Gravity * FrameTime()))
 	mv_SetVelocity(mv, vel)
 	return true
 end
@@ -296,12 +336,13 @@ function DREAMS:DoMove(ply, mv)
 		if not v_WithinAABox(org, v.OBB[1], v.OBB[2]) then continue end
 		for _, s in ipairs(v) do
 			local plane = s.plane
-			local norm = normal(plane[1], plane[2], plane[3])
+			local norm = s.normal or normal(plane[1], plane[2], plane[3])
+			s.normal = norm
 			local hit = intersectrayplane(worg + norm, -norm, plane[1], norm)
 			local fhit = v_IsEqualTol(norm, up, 0.3) and intersectrayplane(org + up * vel_len * 2, -up, plane[1], norm)
 			local wd, fd = hit and v_Dot(worg - hit + norm, norm) or 0, fhit and v_Dot(org - fhit + norm, norm) or 0
 
-			if not fhit and hit and (v_DistToSqr(hit, worg) < 17 ^ 2 or wd < 10 and wd > -2) or fhit and (v_DistToSqr(fhit, org) < 1 or fd < 0 and fd > -3 * math_abs(vel.z / 10)) then
+			if not fhit and hit and (v_DistToSqr(hit, worg) < 17 ^ 2 or wd < 1 and wd > -2) or fhit and (v_DistToSqr(fhit, org) < 1 or fd < 0 and fd > -3 * math_abs(vel.z / 10)) then
 				local verts = s.verts
 				local n_verts = tbl_Count(verts)
 				local e = fhit or hit
@@ -410,9 +451,15 @@ if SERVER then
 		ply:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 		ply:SetNoTarget(true)
 		ply:SetActiveWeapon(NULL)
+		ply:SetMoveType(MOVETYPE_NONE)
 	end
 
 	function DREAMS:ThinkSelf()
+	end
+
+	function DREAMS:EntityTakeDamage(ply, attacker, inflictor, dmg)
+		if not IsValid(attacker) and dmg:GetDamageType() ~= DMG_GENERIC then return true end
+		if IsValid(attacker) and (not attacker:IsPlayer() or attacker:GetDreamID() ~= ply:GetDreamID()) then return true end
 	end
 else
 	function DREAMS:Start()
@@ -421,7 +468,7 @@ else
 	function DREAMS:PrePlayerDraw(ply)
 		if ply:GetDreamID() ~= LocalPlayer():GetDreamID() then
 			if not LocalPlayer():IsDreaming() then
-				ply:SetPos(ply:GetPos() + Vector(0, 0, -96))
+				ply:SetPos(ply:GetPos() + Vector(0, 0, -2500))
 			else
 				ply:SetRenderOrigin(nil)
 			end
@@ -447,3 +494,5 @@ function pmeta:GetActiveWeapon()
 	if res == NULL then return game.GetWorld() end
 	return res
 end
+
+Dreams.LoadDreams()

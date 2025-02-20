@@ -9,11 +9,11 @@ if CLIENT then include("dreams/vmf_converter.lua") end
 
 
 local function LoadDreams()
-	local files = file.Find("include/dreams/*.lua", "LUA")
+	local files = file.Find("includes/dreams/*.lua", "LUA")
 	Dreams.List = {}
 	Dreams.NameToID = {}
 	for k, v in pairs(files) do
-		AddCSLuaFile("include/dreams/" .. v)
+		AddCSLuaFile("includes/dreams/" .. v)
 
 		DREAMS = {}
 		DREAMS.Phys = {}
@@ -21,7 +21,7 @@ local function LoadDreams()
 		DREAMS.Rooms = {}
 		DREAMS.ListRooms = {}
 		setmetatable(DREAMS, Dreams.Meta)
-		include("include/dreams/" .. v)
+		include("includes/dreams/" .. v)
 		local id = table.insert(Dreams.List, DREAMS)
 		DREAMS.ID = id
 		Dreams.NameToID[v:StripExtension()] = id

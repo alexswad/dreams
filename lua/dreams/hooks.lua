@@ -105,3 +105,9 @@ hook.Add("PrePlayerDraw", "Dreams_DrawPlayer", function(ply, flags)
 	local dream = ply:GetDream()
 	return dream:PrePlayerDraw(ply, flags)
 end)
+
+hook.Add("EntityTakeDamage", "Dreams_TakeDamage", function(ent, dmg)
+	if not IsValid(ent) or not ent:IsPlayer() or not ent:IsDreaming() then return end
+	local dream = ent:GetDream()
+	return dream:EntityTakeDamage(ent, dmg:GetAttacker(), dmg:GetInflictor(), dmg)
+end)
