@@ -7,7 +7,8 @@ include("dreams/hooks.lua")
 include("dreams/meta.lua")
 if CLIENT then include("dreams/vmf_converter.lua") end
 
-function Dreams.LoadDreams()
+
+local function LoadDreams()
 	local files = file.Find("include/dreams/*.lua", "LUA")
 	Dreams.List = {}
 	Dreams.NameToID = {}
@@ -16,15 +17,17 @@ function Dreams.LoadDreams()
 
 		DREAMS = {}
 		DREAMS.Phys = {}
-		DREAMS.Name = "dreams_" .. v:StripExtension()
+		DREAMS.Name = v:StripExtension()
 		DREAMS.Rooms = {}
 		DREAMS.ListRooms = {}
 		setmetatable(DREAMS, Dreams.Meta)
 		include("include/dreams/" .. v)
 		local id = table.insert(Dreams.List, DREAMS)
 		DREAMS.ID = id
-		Dreams.NameToID["dreams_" .. v:StripExtension()] = id
+		Dreams.NameToID[v:StripExtension()] = id
 		DREAMS = nil
 	end
 end
-Dreams.LoadDreams() 
+
+Dreams.LoadDreams = LoadDreams
+LoadDreams()

@@ -48,6 +48,7 @@ local v_SetUnpacked = vmeta.SetUnpacked
 local v_Length = vmeta.Length
 
 local math_min = math.min
+local math_max = math.max
 local math_abs = math.abs
 local FrameTime = FrameTime
 local Vector = Vector
@@ -113,15 +114,32 @@ end
 
 if SERVER then
 	function pmeta:SetDream(id)
-		if self:GetDream() then
-			self:GetDream():End(self)
+		self:SetDreamPos(vector_origin)
+		if isstring(id) then
+			id = Dreams.NameToID[id] or 0
 		end
-		if not Dreams.List[id] then ply_SetDTInt(self, 31, 0) return end
+		if self:GetDreamID() == id then return end
+
+		local cdream = self:GetDream()
+		if cdream then
+			cdream:End(self)
+		end
+
+		if not Dreams.List[id] then
+			ply_SetDTInt(self, 31, 0)
+			self:SetNoTarget(false)
+			self:SetCollisionGroup(COLLISION_GROUP_NONE)
+			self:SetMoveType(MOVETYPE_WALK)
+			self:SetAvoidPlayers(self.Dreams_OLDAVP)
+			return
+		end
+
 		ply_SetDTInt(self, 31, id)
 		self:GetDream():Start(self)
 	end
 
 	function pmeta:SetDreamPos(pos)
+		self.DreamRoom = nil
 		ply_SetDTVector(self, 31, pos)
 	end
 end
@@ -164,9 +182,15 @@ function DREAMS:Draw()
 			v.CMDL = v.mdl and ClientsideModelSafe(v.mdl) or false
 			v.CMDL:SetNoDraw(true)
 		elseif v.CMDL == false then continue end
+		if ply.DreamRoom and ply.DreamRoom ~= v then continue end
 
 		render.SuppressEngineLighting(true)
-		render.SetAmbientLight(255 ,255 , 255)
+		render.SetAmbientLight(0, 0 , 0)
+		if v.Lighting then
+			render.ResetModelLighting(v.Lighting[1], v.Lighting[2], v.Lighting[3])
+		else
+			render.ResetModelLighting(1, 1, 1)
+		end
 
 		v.CMDL:SetRenderOrigin(v.offset)
 		v.CMDL:DrawModel()
@@ -174,12 +198,29 @@ function DREAMS:Draw()
 		render.SuppressEngineLighting(false)
 	end
 
-	for k, v in pairs(player.GetAll()) do
-		if not v:IsDreaming() or v == ply then continue end
+	for k, v in ipairs(player.GetAll()) do
+		if not v:GetDreamID() == self.ID or v == ply then continue end
 		render.SuppressEngineLighting(true)
 
 		v:SetNetworkOrigin(v:GetDTVector(31))
 		v:SetPos(v:GetDTVector(31))
+
+		if not v.DreamRoomCache or v.DreamRoomCache < CurTime() then
+			local pos = v:GetDreamPos()
+			for a, room in ipairs(self.ListRooms) do
+				if room.phys and pos:WithinAABox(room.phys.OBB[1], room.phys.OBB[2]) then
+					v.DreamRoom = room
+					break
+				end
+			end
+			v.DreamRoomCache = CurTime() + 0.1
+		end
+
+		if v.DreamRoom and v.DreamRoom.MdlLighting then
+			render.ResetModelLighting(v.DreamRoom.MdlLighting[1], v.DreamRoom.MdlLighting[2], v.DreamRoom.MdlLighting[3])
+		else
+			render.ResetModelLighting(1, 1, 1)
+		end
 
 		if not pk_pills or pk_pills and not pk_pills.getMappedEnt(v) then
 			v:DrawModel()
@@ -196,7 +237,7 @@ function DREAMS:Draw()
 	end
 end
 
-function DREAMS:SetupFog(s)
+function DREAMS:SetupFog()
 end
 
 
@@ -224,7 +265,7 @@ function DREAMS:StartMove(ply, mv, cmd)
 		v_Add(pos, -ang:Right())
 	end
 
-	if ply:IsBot() or cmd_KeyDown(cmd, IN_FORWARD) then
+	if cmd_KeyDown(cmd, IN_FORWARD) then
 		v_Add(pos, Angle(0, ang.y, 0):Forward())
 	end
 
@@ -238,9 +279,10 @@ function DREAMS:StartMove(ply, mv, cmd)
 		vel:Zero()
 	end
 
-	if vel.z < 0 then v_SetUnpacked(vel, vel.x, vel.y, math_min(vel.z, -1) * 1.111) end
+	if vel.z < 0 then v_SetUnpacked(vel, vel.x, vel.y, math_max(math_min(vel.z, -1) * 1.111, -800)) end
 	v_Add(vel, Vector(0, 0, -self.Gravity * FrameTime()))
 	mv_SetVelocity(mv, vel)
+	return true
 end
 
 local woff = Vector(0, 0, 32)
@@ -287,11 +329,13 @@ function DREAMS:DoMove(ply, mv)
 
 	ply_SetDTVector(ply, 31, org + vel * FrameTime())
 	mv_SetVelocity(mv, vel)
+	return true
 end
 
 function DREAMS:FinishMove(ply, mv)
 	ply:SetAbsVelocity(mv_GetVelocity(mv))
 	if SERVER then ply:DropToFloor() end
+	return true
 end
 
 local height = Vector(0, 0, 64)
@@ -344,11 +388,32 @@ end
 
 if SERVER then
 	function DREAMS:Start(ply)
-		ply:SetDreamPos(vector_origin)
+		local start = ents.FindByClass("info_player_start")[1]
+		ply:SetPos(IsValid(start) and start:GetPos() + Vector(0, 0, 1) or vector_origin)
+		ply:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
+		ply:SetNoTarget(true)
+		ply:SetMoveType(MOVETYPE_NONE)
+		ply.Dreams_OLDAVP = ply:GetAvoidPlayers()
+		ply:SetAvoidPlayers(false)
+		ply:SetActiveWeapon(NULL)
+	end
+
+	function DREAMS:ThinkSelf()
 	end
 else
 	function DREAMS:Start()
 	end
+
+	function DREAMS:PrePlayerDraw(ply)
+		if ply:GetDreamID() ~= LocalPlayer():GetDreamID() then
+			ply:SetPos(ply:GetPos() + Vector(0, 0, -96))
+			return true
+		end
+	end
+end
+
+function DREAMS:SwitchWeapon()
+	return true
 end
 
 function DREAMS:Think(ply)
@@ -357,4 +422,10 @@ end
 function DREAMS:End(ply)
 end
 
-Dreams.LoadDreams()
+pmeta.O_GetActiveWeapon = pmeta.O_GetActiveWeapon or pmeta.GetActiveWeapon
+
+function pmeta:GetActiveWeapon()
+	local res = self:O_GetActiveWeapon()
+	if res == NULL then return game.GetWorld() end
+	return res
+end
