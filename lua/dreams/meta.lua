@@ -299,6 +299,26 @@ DREAMS.MoveSpeed = 20
 DREAMS.ShiftSpeed = 40
 DREAMS.JumpPower = 400
 DREAMS.Gravity = 600
+
+local function get_move(cmd, pos, ang)
+	if cmd_KeyDown(cmd, IN_MOVERIGHT) then
+		v_Add(pos, ang:Right())
+	end
+
+	if cmd_KeyDown(cmd, IN_MOVELEFT) then
+		v_Add(pos, -ang:Right())
+	end
+
+	if cmd_KeyDown(cmd, IN_FORWARD) then
+		v_Add(pos, Angle(0, ang.y, 0):Forward())
+	end
+
+	if cmd_KeyDown(cmd, IN_BACK) then
+		v_Add(pos, -Angle(0, ang.y, 0):Forward())
+	end
+end
+Dreams.Meta.TranslateMovement = get_move
+
 function DREAMS:StartMove(ply, mv, cmd)
 	mv_SetVelocity(mv, ply_GetAbsVelocity(ply))
 	mv_SetOrigin(mv, mv_GetOrigin(mv))
@@ -310,21 +330,7 @@ function DREAMS:StartMove(ply, mv, cmd)
 		speed = self.ShiftSpeed
 	end
 
-	if cmd_KeyDown(cmd, IN_MOVERIGHT) then
-		v_Add(pos, ang:Right())
-	end
-
-	if cmd_KeyDown(cmd, IN_MOVELEFT) then
-		v_Add(pos, -ang:Right())
-	end
-
-	if ply:IsBot() or cmd_KeyDown(cmd, IN_FORWARD) then
-		v_Add(pos, Angle(0, ang.y, 0):Forward())
-	end
-
-	if cmd_KeyDown(cmd, IN_BACK) then
-		v_Add(pos, -Angle(0, ang.y, 0):Forward())
-	end
+	get_move(cmd, pos, ang)
 
 	v_Normalize(pos)
 	local vel = ply_GetAbsVelocity(ply) * 0.9 + pos * speed
@@ -350,21 +356,7 @@ function DREAMS:StartMoveFly(ply, mv, cmd)
 		speed = self.ShiftSpeed
 	end
 
-	if cmd_KeyDown(cmd, IN_MOVERIGHT) then
-		v_Add(pos, ang:Right())
-	end
-
-	if cmd_KeyDown(cmd, IN_MOVELEFT) then
-		v_Add(pos, -ang:Right())
-	end
-
-	if  cmd_KeyDown(cmd, IN_FORWARD) then
-		v_Add(pos, Angle(0, ang.y, 0):Forward())
-	end
-
-	if cmd_KeyDown(cmd, IN_BACK) then
-		v_Add(pos, -Angle(0, ang.y, 0):Forward())
-	end
+	get_move(cmd, pos, ang)
 
 	if cmd_KeyDown(cmd, IN_JUMP) then
 		v_Add(pos, Vector(0, 0, 1))
