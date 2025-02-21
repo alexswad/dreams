@@ -177,8 +177,7 @@ end
 
 ///////////////////////////////////////////////
 
-function DREAMS:Draw(debug)
-	local ply = LocalPlayer()
+function DREAMS:Draw(ply, debug)
 	ply:SetPos(ply:GetDTVector(31))
 	ply:SetNetworkOrigin(ply:GetDTVector(31))
 	for k, v in ipairs(self.ListRooms) do
@@ -277,6 +276,23 @@ end
 function DREAMS:SetupFog()
 end
 
+function DREAMS:RenderScene(ply)
+	local view = {
+		origin = origin,
+		angles = angles,
+		fov = fov,
+	}
+	if not self:SetupFog(ply) then render.FogMode(MATERIAL_FOG_NONE) end
+	self:CalcView(ply, view)
+	cam.Start3D(view.origin, view.angles, view.fov, 0, 0, ScrW(), ScrH())
+	self:Draw(ply)
+	cam.End3D()
+
+	cam.Start2D()
+	self:DrawHUD(ply, ScrW(), ScrH())
+	cam.End2D()
+	return true
+end
 
 ///////////////////////////////////////////
 DREAMS.MoveSpeed = 20
@@ -450,7 +466,7 @@ if CLIENT then
 	local close_chat = chat.Close
 	local chatbox
 	local cviewport
-	hook.Add("StartChat", "Dreams_gethuds", function()
+	hook.Add("StartChat", "!!!!Dreams_gethuds", function()
 		if IsValid(chatbox) or (chatbox == false and chatbox ~= nil) then return end
 		timer.Simple(0.1, function()
 			chatbox = IsValid(vgui.GetKeyboardFocus()) and vgui.GetKeyboardFocus():GetParent():GetParent()
@@ -460,7 +476,7 @@ if CLIENT then
 	end)
 
 	local opened
-	function DREAMS:DrawHUD()
+	function DREAMS:DrawHUD(ply, w, h)
 		if not opened and chatbox == nil then
 			opened = true
 			open_chat(1)
@@ -506,7 +522,7 @@ if SERVER then
 		if IsValid(attacker) and (not attacker:IsPlayer() or attacker:GetDreamID() ~= ply:GetDreamID()) then return true end
 	end
 else
-	function DREAMS:Start()
+	function DREAMS:Start(ply)
 	end
 
 	function DREAMS:PrePlayerDraw(ply)
@@ -521,7 +537,7 @@ else
 	end
 end
 
-function DREAMS:SwitchWeapon()
+function DREAMS:SwitchWeapon(ply, old, new)
 	return true
 end
 
@@ -538,5 +554,3 @@ function pmeta:GetActiveWeapon()
 	if res == NULL then return game.GetWorld() end
 	return res
 end
-
-Dreams.LoadDreams()

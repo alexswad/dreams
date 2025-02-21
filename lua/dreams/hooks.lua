@@ -3,21 +3,7 @@ if CLIENT then
 		local ply = LocalPlayer()
 		if not ply:IsDreaming() then return end
 		local dream = ply:GetDream()
-		local view = {
-			origin = origin,
-			angles = angles,
-			fov = fov,
-		}
-		if not dream:SetupFog(ply) then render.FogMode(MATERIAL_FOG_NONE) end
-		dream:CalcView(ply, view)
-		cam.Start3D(view.origin, view.angles, view.fov, 0, 0, ScrW(), ScrH())
-			dream:Draw(ply)
-		cam.End3D()
-
-		cam.Start2D()
-			dream:DrawHUD(ply, ScrW(), ScrH())
-		cam.End2D()
-		return true
+		return dream:RenderScene(ply)
 	end)
 
 	hook.Add("HUDShouldDraw", "!!Dreams_ShouldDrawHud", function(str)
@@ -65,6 +51,7 @@ else
 			else
 				for k, v in pairs(player.GetAll()) do
 					v:SetRenderOrigin(nil)
+					v:SetPos(v:GetNetworkOrigin())
 				end
 			end
 			last_dream = dream and dream.ID or 0
