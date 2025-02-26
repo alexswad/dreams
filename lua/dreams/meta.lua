@@ -119,6 +119,7 @@ end
 
 if SERVER then
 	function pmeta:SetDream(id)
+		self:SetNoTarget(false)
 		self:SetDreamPos(vector_origin)
 		if isstring(id) then
 			id = Dreams.NameToID[id] or 0
@@ -132,7 +133,6 @@ if SERVER then
 
 		if not Dreams.List[id] then
 			ply_SetDTInt(self, 31, 0)
-			self:SetNoTarget(false)
 			self:SetCollisionGroup(COLLISION_GROUP_NONE)
 			self:SetMoveType(MOVETYPE_WALK)
 			return
@@ -140,6 +140,7 @@ if SERVER then
 
 		ply_SetDTInt(self, 31, id)
 		self:GetDream():Start(self)
+		self:SetNoTarget(true)
 	end
 
 	function pmeta:SetDreamPos(pos)
@@ -539,10 +540,33 @@ end
 function DREAMS:End(ply)
 end
 
+//////////////////////////////////
 pmeta.O_GetActiveWeapon = pmeta.O_GetActiveWeapon or pmeta.GetActiveWeapon
 
 function pmeta:GetActiveWeapon()
 	local res = self:O_GetActiveWeapon()
 	if res == NULL then return game.GetWorld() end
 	return res
+end
+
+if SERVER then
+	emeta.O_EmitSound = emeta.O_EmitSound or emeta.EmitSound
+
+	function emeta:EmitSound(name, lvl, pitch, vlm, chnl,flg, dsp, filter)
+		if not filter then
+			filter = RecipientFilter()
+			filter:AddAllPlayers()
+		end
+		for k, v in pairs(player.GetAll()) do
+			if v:IsDreaming() then
+				filter:RemovePlayer(v)
+			end
+		end
+
+		self:O_EmitSound(name, lvl, pitch, vlm, chnl,flg, dsp, filter)
+	end
+else
+	function DREAMS:EntityEmitSound(tbl)
+		if IsValid(tbl.Entity) and tbl.Entity ~= LocalPlayer() then return false end
+	end
 end

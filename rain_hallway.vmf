@@ -2,7 +2,7 @@ versioninfo
 {
 	"editorversion" "400"
 	"editorbuild" "8869"
-	"mapversion" "25"
+	"mapversion" "26"
 	"formatversion" "100"
 	"prefab" "0"
 }
@@ -95,7 +95,7 @@ bgimages_plus
 world
 {
 	"id" "1"
-	"mapversion" "25"
+	"mapversion" "26"
 	"classname" "worldspawn"
 	"detailmaterial" "detail/detailsprites"
 	"detailvbsp" "detail.vbsp"
@@ -1056,7 +1056,7 @@ world
 		}
 		side
 		{
-			"id" "0"
+			"id" "5265"
 			"plane" "(-466.4 944 -182) (-466.4 944 -150) (-593 600 -150)"
 			vertices_plus
 			{
@@ -1452,6 +1452,36 @@ world
 		}
 	}
 }
+entity
+{
+	"id" "25811"
+	"classname" "info_teleport_destination"
+	"angles" "0 0 0"
+	"targetname" "test"
+	"origin" "-350 698 -149"
+	editor
+	{
+		"color" "220 30 220"
+		"visgroupshown" "1"
+		"visgroupautoshown" "1"
+		"logicalpos" "[0 0]"
+	}
+}
+entity
+{
+	"id" "25821"
+	"classname" "info_target"
+	"angles" "0 0 0"
+	"targetname" "test"
+	"origin" "11 -422 -35"
+	editor
+	{
+		"color" "220 30 220"
+		"visgroupshown" "1"
+		"visgroupautoshown" "1"
+		"logicalpos" "[0 1500]"
+	}
+}
 cameras
 {
 	"activecamera" "2"
@@ -1467,8 +1497,8 @@ cameras
 	}
 	camera
 	{
-		"position" "[-498.076 -594.038 678.685]"
-		"look" "[-443.074 -503.227 599.262]"
+		"position" "[-182.641 -456.399 133.062]"
+		"look" "[-142.941 -365.543 45.0335]"
 	}
 }
 cordons

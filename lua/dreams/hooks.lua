@@ -1,22 +1,29 @@
 if CLIENT then
-	hook.Add("RenderScene", "!!Dreams_RenderDreams", function(origin, angles, fov)
+	hook.Add("RenderScene", "!!dreams_RenderDreams", function(origin, angles, fov)
 		local ply = LocalPlayer()
 		if not ply:IsDreaming() then return end
 		local dream = ply:GetDream()
 		return dream:RenderScene(ply)
 	end)
 
-	hook.Add("HUDShouldDraw", "!!Dreams_ShouldDrawHud", function(str)
+	hook.Add("HUDShouldDraw", "!!dreams_ShouldDrawHud", function(str)
 		local ply = LocalPlayer()
 		if not ply.IsDreaming or not ply:IsDreaming() then return end
 		local dream = ply:GetDream()
 		return dream:HUDShouldDraw(ply, str)
 	end)
+
+	hook.Add("EntityEmitSound", "!!!!dreams_EmitSound", function(tbl)
+		local ply = LocalPlayer()
+		if not ply:IsDreaming() then return end
+		local dream = ply:GetDream()
+		return dream:EntityEmitSound(tbl)
+	end)
 end
 
 if SERVER then
 	local ran = {}
-	hook.Add("Think", "!!Dreams_Think", function()
+	hook.Add("Think", "!!dreams_Think", function()
 		for k, v in ipairs(player.GetAll()) do
 			if not v:IsDreaming() or not v:Alive() then continue end
 			local dream = v:GetDream()
@@ -36,11 +43,11 @@ if SERVER then
 		end)
 	end
 
-	hook.Add("PlayerDeath", "!!Dreams_Death", ondeath)
+	hook.Add("PlayerDeath", "!!dreams_Death", ondeath)
 	hook.Add("PlayerSilentDeath", "!!Dreams_Death", ondeath)
 else
 	local last_dream = 0
-	hook.Add("Think", "!!!Dreams_Think", function()
+	hook.Add("Think", "!!!dreams_Think", function()
 		local ply = LocalPlayer()
 		if not ply.IsDreaming then return end
 		local dream = ply:GetDream()
@@ -63,37 +70,37 @@ else
 	end)
 end
 
-hook.Add("SetupMove", "!!!Dreams_setupmove", function(ply, cmd, mv)
+hook.Add("SetupMove", "!!!dreams_setupmove", function(ply, cmd, mv)
 	if not ply:IsDreaming() then return end
 	local dream = ply:GetDream()
 	return dream:StartMove(ply, cmd, mv)
 end)
 
-hook.Add("Move", "!!!Dreams_domove", function(ply, mv)
+hook.Add("Move", "!!!dreams_domove", function(ply, mv)
 	if not ply:IsDreaming() then return end
 	local dream = ply:GetDream()
 	return dream:DoMove(ply, mv)
 end)
 
-hook.Add("FinishMove", "!!!Dreams_finishmove", function(ply, mv)
+hook.Add("FinishMove", "!!!dreams_finishmove", function(ply, mv)
 	if not ply:IsDreaming() then return end
 	local dream = ply:GetDream()
 	return dream:FinishMove(ply, mv)
 end)
 
-hook.Add("PlayerSwitchWeapon", "!!!Dreams_SwitchWeapon", function(ply, old, new)
+hook.Add("PlayerSwitchWeapon", "!!!dreams_SwitchWeapon", function(ply, old, new)
 	if not ply:IsDreaming() then return end
 	local dream = ply:GetDream()
 	return dream:SwitchWeapon(ply, old, new)
 end)
 
-hook.Add("PrePlayerDraw", "!!!Dreams_DrawPlayer", function(ply, flags)
+hook.Add("PrePlayerDraw", "!!!dreams_DrawPlayer", function(ply, flags)
 	if not ply:IsDreaming() then return end
 	local dream = ply:GetDream()
 	return dream:PrePlayerDraw(ply, flags)
 end)
 
-hook.Add("EntityTakeDamage", "!!!!Dreams_TakeDamage", function(ent, dmg)
+hook.Add("EntityTakeDamage", "!!!!dreams_TakeDamage", function(ent, dmg)
 	if not IsValid(ent) or not ent:IsPlayer() or not ent:IsDreaming() then return end
 	local dream = ent:GetDream()
 	return dream:EntityTakeDamage(ent, dmg:GetAttacker(), dmg:GetInflictor(), dmg)
