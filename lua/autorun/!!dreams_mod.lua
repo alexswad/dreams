@@ -20,6 +20,7 @@ local function LoadDreams()
 		DREAMS.Name = v:StripExtension()
 		DREAMS.Rooms = {}
 		DREAMS.ListRooms = {}
+		DREAMS.DTVars = {}
 		setmetatable(DREAMS, Dreams.Meta)
 		include("includes/dreams/" .. v)
 		local id = table.insert(Dreams.List, DREAMS)

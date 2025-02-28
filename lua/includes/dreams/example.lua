@@ -60,3 +60,6 @@ end
 function DREAMS:SwitchWeapon(ply, old, new) // return true to prevent, default will only allow player to switch to nothing
 	return Dreams.Meta.SwitchWeapon(self, ply, old, new)
 end
+
+function DREAMS:SetupDataTables()
+end

@@ -28,6 +28,7 @@ if SERVER then
 			if not v:IsDreaming() or not v:Alive() then continue end
 			local dream = v:GetDream()
 			if not ran[dream.ID] then
+				dream:CheckNetwork()
 				dream:ThinkSelf()
 				ran[dream.ID] = true
 			end
@@ -65,6 +66,7 @@ else
 		end
 
 		if dream then
+			dream:CheckNetwork()
 			dream:Think(ply)
 		end
 	end)
