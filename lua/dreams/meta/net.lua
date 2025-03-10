@@ -1,6 +1,43 @@
 local Dreams = Dreams
 local DREAMS = Dreams.Meta
 
+local types = {
+	["Vector"] = true,
+	["Angle"] = true,
+	["Bool"] = true,
+	["Entity"] = true,
+	["Int"] = true,
+	["String"] = true,
+	["Float"] = true,
+}
+
+function DREAMS:NetworkVar(type, slot, name)
+	assert(types[type or 0], "Invalid network type")
+	assert(slot and name, "Missing arguements")
+	if type == "Vector" then
+		self["Get" .. name] = function(d) return d:GetDTVector(slot) end
+		self["Set" .. name] = function(d, v) d:SetDTVector(slot, v) end
+	elseif type == "Angle" then
+		self["Get" .. name] = function(d) return d:GetDTAngle(slot) end
+		self["Set" .. name] = function(d, v) d:SetDTAngle(slot, v) end
+	elseif type == "Bool" then
+		self["Get" .. name] = function(d) return d:GetDTBool(slot) end
+		self["Set" .. name] = function(d, v) d:SetDTBool(slot, v) end
+	elseif type == "Entity" then
+		self["Get" .. name] = function(d) return d:GetDTEntity(slot) end
+		self["Set" .. name] = function(d, v) d:SetDTEntity(slot, v) end
+	elseif type == "Int" then
+		self["Get" .. name] = function(d) return d:GetDTInt(slot) end
+		self["Set" .. name] = function(d, v) d:SetDTInt(slot, v) end
+	elseif type == "String" then
+		self["Get" .. name] = function(d) return d:GetDTString(slot) end
+		self["Set" .. name] = function(d, v) d:SetDTString(slot, v) end
+	elseif type == "Float" then
+		self["Get" .. name] = function(d) return d:GetDTFloat(slot) end
+		self["Set" .. name] = function(d, v) d:SetDTFloat(slot, v) end
+	end
+end
+
 if SERVER then
 	function DREAMS:CheckNetwork()
 		if not self.SetupDataTables or IsValid(self.NetEntity) or self.NetEntity == false then return end
@@ -9,7 +46,7 @@ if SERVER then
 		if not IsValid(self.NetEntity) then self.NetEntity = false return end
 		for type, tab in pairs(self.DTVars) do
 			for k, v in pairs(tab) do
-				self:SetDTVar(type, k, v)
+				self:SetDTVar(type, k, v, true)
 			end
 		end
 	end
@@ -57,8 +94,9 @@ if SERVER then
 		self.NetEntity:SetDTFloat(k, float)
 	end
 
-	function DREAMS:SetDTVar(type, k, var)
+	function DREAMS:SetDTVar(type, k, var, skip)
 		self.NetEntity["SetDT" .. type](self.NetEntity, k, var)
+		if not skip then self.DTVars[type] = self.DTVars[type] or {}; self.DTVars[type][k] = var end
 	end
 	//
 	function DREAMS:GetDTVector(k, vec)

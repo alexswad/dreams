@@ -107,3 +107,7 @@ hook.Add("EntityTakeDamage", "!!!!dreams_TakeDamage", function(ent, dmg)
 	local dream = ent:GetDream()
 	return dream:EntityTakeDamage(ent, dmg:GetAttacker(), dmg:GetInflictor(), dmg)
 end)
+
+hook.Add("InitPostEntity", "!!!dreams_init", function()
+	Dreams.Init()
+end)

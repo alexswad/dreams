@@ -81,10 +81,11 @@ function DREAMS:Draw(ply, debug)
 		render.SuppressEngineLighting(false)
 	end
 
-	if debug == 1 or debug == 2 or debug == 3 then
+	if debug == 1 or debug == 2 or debug == 3 or debug == 4 then
 		for k, v in ipairs(self.Phys) do
-			if debug == 1 and v.OBB then
-				render.DrawWireframeBox(vector_origin, Angle(), v.OBB[1], v.OBB[2], Color(100, 0, 255), true)
+			if (debug == 1 or debug == 4) and v.OBB then
+				local col = HSVToColor(k * 20, 1, 1)
+				render.DrawWireframeBox(vector_origin, Angle(), v.OBB[1], v.OBB[2], col, true)
 			end
 			for _, s in ipairs(v) do
 				if not s.bvert then

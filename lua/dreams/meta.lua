@@ -155,7 +155,7 @@ if CLIENT then
 	end)
 
 	local opened
-	function DREAMS:DrawHUD(ply, w, h)
+	function DREAMS:DrawHUD(ply, w, h, skip_glua)
 		if not opened and chatbox == nil then
 			opened = true
 			open_chat(1)
@@ -171,9 +171,11 @@ if CLIENT then
 			cviewport:SetPaintedManually(false)
 		end
 
-		GetHUDPanel():SetPaintedManually(true)
-		GetHUDPanel():PaintManual()
-		GetHUDPanel():SetPaintedManually(false)
+		if not skip_glua then
+			GetHUDPanel():SetPaintedManually(true)
+			GetHUDPanel():PaintManual()
+			GetHUDPanel():SetPaintedManually(false)
+		end
 	end
 
 	function DREAMS:HUDShouldDraw(ply, string)

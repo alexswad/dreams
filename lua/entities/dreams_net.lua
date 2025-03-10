@@ -1,3 +1,5 @@
+AddCSLuaFile()
+
 ENT.Base = "base_anim"
 ENT.Author = "eskil"
 ENT.RenderGroup = RENDERGROUP_OTHER
