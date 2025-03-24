@@ -140,11 +140,11 @@ function DREAMS:StartMoveFly(ply, mv, cmd)
 end
 
 local woff = Vector(0, 0, 32)
+local woff2 = Vector(0, 0, 2)
 local up = Vector(0, 0, 1)
 function DREAMS:DoMove(ply, mv)
 	local vel, org = mv_GetVelocity(mv), ply_GetDTVector(ply, 31)
 	local vel_len = v_Length(vel)
-	local worg = org + woff
 
 	local onfloor
 	for k, v in ipairs(self.Phys) do
@@ -153,11 +153,18 @@ function DREAMS:DoMove(ply, mv)
 			local plane = s.plane
 			local norm = s.normal or normal(plane[1], plane[2], plane[3])
 			s.normal = norm
-			local hit = intersectrayplane(worg + norm, -norm, plane[1], norm)
+			local worg, worg_off = org + woff, woff
+			local hit = intersectrayplane(worg, -norm, plane[1], norm)
 			local fhit = v_IsEqualTol(norm, up, 0.3) and intersectrayplane(org + up * vel_len * 2, -up, plane[1], norm)
-			local wd, fd = hit and v_Dot(worg - hit + norm, norm) or 0, fhit and v_Dot(org - fhit + norm, norm) or 0
+			local wd, fd = hit and v_Dot(worg - hit, norm) or 0, fhit and v_Dot(org - fhit + norm, norm) or 0
 
-			if not fhit and hit and (v_DistToSqr(hit, worg) < 17 ^ 2 or wd < 1 and wd > -2) or fhit and (v_DistToSqr(fhit, org) < 1 or fd < 0 and fd > -3 * math_abs(vel.z / 10)) then
+			if not fhit and not hit then
+				worg = org + woff2 + norm * 2
+				worg_off = woff2
+				hit = intersectrayplane(worg, -norm, plane[1], norm)
+			end
+
+			if not fhit and hit and (v_DistToSqr(hit, worg) < 17 ^ 2 or wd < 1 and wd > -4) or fhit and (v_DistToSqr(fhit, org) < 1 or fd < 0 and fd > -4 * math_abs(vel.z / 10)) then
 				local verts = s.verts
 				local n_verts = tbl_Count(verts)
 				local e = fhit or hit
@@ -175,11 +182,9 @@ function DREAMS:DoMove(ply, mv)
 					onfloor = true
 					v_SetUnpacked(org, org.x, org.y, fhit.z)
 					v_SetUnpacked(vel, vel.x, vel.y, 0.1)
-					worg = org + woff
 				else
 					vel = vel - norm * v_Dot(vel, norm)
-					org = hit - woff + norm * 17
-					worg = org + woff
+					org = hit - worg_off + norm * 17
 				end
 			end
 		end

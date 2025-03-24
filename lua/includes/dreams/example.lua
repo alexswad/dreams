@@ -61,5 +61,10 @@ function DREAMS:SwitchWeapon(ply, old, new) // return true to prevent, default w
 	return Dreams.Meta.SwitchWeapon(self, ply, old, new)
 end
 
+// If defined, will automatically create a DREAMS.NetEntity for easy networking
+/*
 function DREAMS:SetupDataTables()
+	self:NetworkVar("Int", 1, "MyVar")
+	self:SetMyVar(200)
 end
+*/

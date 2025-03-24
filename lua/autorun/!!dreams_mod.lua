@@ -23,6 +23,8 @@ local function LoadDreams()
 		DREAMS.Rooms = {}
 		DREAMS.ListRooms = {}
 		DREAMS.DTVars = {}
+		DREAMS.NetReceivers = {}
+		DREAMS.NetSenders = {}
 		setmetatable(DREAMS, Dreams.Meta)
 		include("includes/dreams/" .. v)
 		local id = table.insert(Dreams.List, DREAMS)

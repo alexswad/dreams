@@ -111,3 +111,17 @@ end)
 hook.Add("InitPostEntity", "!!!dreams_init", function()
 	Dreams.Init()
 end)
+
+if SERVER then
+	local spawn = function(ply)
+		if ply:IsDreaming() then return false end
+	end
+
+	hook.Add("PlayerSpawnEffect", "!!!dreams_SpawnBlock", spawn)
+	hook.Add("PlayerSpawnObject", "!!!dreams_SpawnBlock", spawn)
+	hook.Add("PlayerSpawnNPC", "!!!dreams_SpawnBlock", spawn)
+	hook.Add("PlayerSpawnProp", "!!!dreams_SpawnBlock", spawn)
+	hook.Add("PlayerSpawnRagdoll", "!!!dreams_SpawnBlock", spawn)
+	hook.Add("PlayerSpawnSENT", "!!!dreams_SpawnBlock", spawn)
+	hook.Add("PlayerSpawnVehicle", "!!!dreams_SpawnBlock", spawn)
+end

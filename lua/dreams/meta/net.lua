@@ -203,3 +203,48 @@ else
 		return self.NetEntity:GetDTFloat(k, float)
 	end
 end
+
+///// Commands ////
+
+function DREAMS:AddNetReceiver(string, func)
+	self.NetReceivers[string] = func
+end
+
+function DREAMS:AddNetSender(string, func)
+	self.NetSenders[string] = func or function() end
+end
+
+if SERVER then
+	util.AddNetworkString("dreams_netcommands")
+	function DREAMS:SendCommand(str, ply, data)
+		assert(self.NetSenders[str], "Net Command " .. str .. " not defined")
+		net.Start("dreams_netcommands")
+		net.WriteString(str)
+		self.NetSenders[str](self, data)
+		net.Send(ply)
+	end
+
+	net.Receive("dreams_netcommands", function(len, ply)
+		local dream = ply:GetDream()
+		if not dream then return end
+		local cmd = net.ReadString()
+		if not dream.NetReceivers[cmd or ""] then return end
+		dream.NetReceivers[cmd](dream, ply)
+	end)
+else
+	function DREAMS:SendCommand(str, data)
+		assert(self.NetSenders[str], "Net Command " .. str .. " not defined")
+		net.Start("dreams_netcommands")
+		net.WriteString(str)
+		self.NetSenders[str](self, data)
+		net.SendToServer()
+	end
+
+	net.Receive("dreams_netcommands", function(len, ply)
+		local dream = LocalPlayer():GetDream()
+		if not dream then return end
+		local cmd = net.ReadString()
+		assert(dream.NetReceivers[cmd or ""], "Net Receiver " .. (cmd or "<bad data>") .. " not defined")
+		dream.NetReceivers[cmd](dream, LocalPlayer())
+	end)
+end

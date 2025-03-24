@@ -263,6 +263,23 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 		table.insert(lights, light)
 	end
 
+	names = {}
+	local marks = {}
+	for k, v in pairs(entities) do
+		if v.classname ~= "info_teleport_destination" and v.classname ~= "info_target" then continue end
+		local name = v.targetname or "mark"
+		local mark = {
+			pos = v.origin,
+			angles = v.angles,
+		}
+
+		if names[name] then
+			name = name .. names[name]
+		end
+		names[name] = (names[name] or 1) + 1
+		marks[name] = mark
+	end
+
 	remove_up(solids)
 	test_solids = solids
 
@@ -290,6 +307,7 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 		end
 	end
 	test_sides.OBB = {min, max}
+	if table.Count(marks) > 0 then test_sides.Marks = marks end
 
 	//PrintTable(test_sides)
 	local name = string.Explode("/", args[1])

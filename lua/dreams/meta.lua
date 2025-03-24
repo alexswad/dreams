@@ -110,7 +110,8 @@ end
 
 function DREAMS:AddRoom(name, mdl, phy, offset)
 	offset = offset or vector_origin
-	local phys = util.JSONToTable(util.Decompress(file.Read(phy, "GAME") or ""))
+	local phys = util.JSONToTable(util.Decompress(file.Read(phy, "GAME") or "") or "")
+	local marks
 	if phys then
 		for k, side in ipairs(phys) do
 			for _, vert in pairs(side.verts) do
@@ -122,9 +123,11 @@ function DREAMS:AddRoom(name, mdl, phy, offset)
 		end
 		phys.OBB[1] = phys.OBB[1] + offset
 		phys.OBB[2] = phys.OBB[2] + offset
+		marks = phys.Marks
+		phys.Marks = nil
 		table.insert(self.Phys, phys)
 	end
-	self.Rooms[name] = {name = name, mdl = mdl, phys = phys, phy_string = phy, offset = offset}
+	self.Rooms[name] = {Marks = marks, name = name, mdl = mdl, phys = phys, phy_string = phy, offset = offset}
 	if phys then phys.Room = self.Rooms[name] end
 
 	table.insert(self.ListRooms, self.Rooms[name])
@@ -146,10 +149,10 @@ if CLIENT then
 	local chatbox
 	local cviewport
 	hook.Add("StartChat", "!!!!Dreams_gethuds", function()
-		if IsValid(chatbox) or (chatbox == false and chatbox ~= nil) then return end
-		timer.Simple(0.1, function()
+		if IsValid(chatbox) then return end
+		timer.Simple(0.2, function()
 			chatbox = IsValid(vgui.GetKeyboardFocus()) and vgui.GetKeyboardFocus():GetParent():GetParent()
-			if not IsValid(chatbox) or chatbox:GetClassName() ~= "CHudChat" then chatbox = false return end
+			if not IsValid(chatbox) or chatbox:GetClassName() ~= "CHudChat" then return end
 			cviewport = chatbox:GetParent()
 		end)
 	end)
@@ -159,7 +162,7 @@ if CLIENT then
 		if not opened and chatbox == nil then
 			opened = true
 			open_chat(1)
-			timer.Simple(0.2, close_chat)
+			timer.Simple(0.25, close_chat)
 		end
 		if chatbox and chatbox:GetClassName() == "CHudChat" then
 			chatbox:SetPaintedManually(true)
@@ -186,7 +189,7 @@ end
 if SERVER then
 	function DREAMS:Start(ply)
 		local starts = ents.FindByClass("info_player_start")
-		local start = starts[math.random(#starts)] or starts[1]
+		local start = ents.FindByClass("sky_camera")[1] or starts[math.random(#starts)] or starts[1]
 		ply:SetPos((IsValid(start) and start:GetPos() + Vector(0, 0, 1) or vector_origin) + Angle(0, math.Rand(1, 360), 45):Forward() * math.random(72, 120))
 		ply:DropToFloor()
 		ply:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
@@ -226,6 +229,9 @@ function DREAMS:Think(ply)
 end
 
 function DREAMS:End(ply)
+	local starts = ents.FindByClass("info_player_start")
+	local start = starts[math.random(#starts)] or starts[1]
+	ply:SetPos((IsValid(start) and start:GetPos() + Vector(0, 0, 1) or vector_origin) + Angle(0, math.Rand(1, 360), 45):Forward() * math.random(72, 120))
 end
 
 //////////////////////////////////
