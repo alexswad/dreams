@@ -75,12 +75,12 @@ end
 
 if SERVER then
 	function pmeta:SetDream(id)
-		self:SetNoTarget(false)
-		self:SetDreamPos(vector_origin)
 		if isstring(id) then
 			id = Dreams.NameToID[id] or 0
 		end
 		if self:GetDreamID() == id then return end
+		self:SetNoTarget(false)
+		self:SetDreamPos(vector_origin)
 
 		local cdream = self:GetDream()
 		if cdream then
@@ -123,7 +123,13 @@ function DREAMS:AddRoom(name, mdl, phy, offset)
 		end
 		phys.OBB[1] = phys.OBB[1] + offset
 		phys.OBB[2] = phys.OBB[2] + offset
-		marks = phys.Marks
+		if phys.Marks then
+			marks = {}
+			for k, v in pairs(phys.Marks) do
+				v.pos = v.pos + offset
+				marks[k] = v
+			end
+		end
 		phys.Marks = nil
 		table.insert(self.Phys, phys)
 	end

@@ -42,7 +42,7 @@ if SERVER then
 	function DREAMS:CheckNetwork()
 		if not self.SetupDataTables or IsValid(self.NetEntity) or self.NetEntity == false then return end
 		self.NetEntity = ents.Create("dreams_net")
-		self.NetEntity:SetDTInt(0, self.ID)
+		self.NetEntity:SetDTInt(31, self.ID)
 		if not IsValid(self.NetEntity) then self.NetEntity = false return end
 		for type, tab in pairs(self.DTVars) do
 			for k, v in pairs(tab) do
@@ -76,7 +76,7 @@ if SERVER then
 	end
 
 	function DREAMS:SetDTInt(k, int)
-		assert(k ~= 0, "Attempted use of reserved DTInt slot 0")
+		assert(k ~= 31, "Attempted use of reserved DTInt slot 31")
 		self.DTVars["Int"] = self.DTVars["Int"] or {}
 		self.DTVars["Int"][k] = int
 		self.NetEntity:SetDTInt(k, int)
@@ -120,7 +120,7 @@ if SERVER then
 	end
 
 	function DREAMS:GetDTInt(k, int)
-		assert(k ~= 0, "Attempted use of reserved DTInt slot 0")
+		assert(k ~= 31, "Attempted use of reserved DTInt slot 31")
 		self.DTVars["Int"] = self.DTVars["Int"] or {}
 		return self.DTVars["Int"][k] or int or 0
 	end
@@ -138,7 +138,7 @@ else
 	function DREAMS:CheckNetwork()
 		if not self.SetupDataTables or IsValid(self.NetEntity) then return end
 		for k, v in pairs(ents.FindByClass("dreams_net")) do
-			if v:GetDTInt(0) == self.ID then
+			if v:GetDTInt(31) == self.ID then
 				self.NetEntity = v
 				break
 			end
@@ -162,7 +162,7 @@ else
 	end
 
 	function DREAMS:SetDTInt(k, int)
-		assert(k ~= 0, "Attempted use of reserved DTInt slot 0")
+		assert(k ~= 31, "Attempted use of reserved DTInt slot 31")
 		self.NetEntity:SetDTInt(k, int)
 	end
 
@@ -191,7 +191,7 @@ else
 	end
 
 	function DREAMS:GetDTInt(k, int)
-		assert(k ~= 0, "Attempted use of reserved DTInt slot 0")
+		assert(k ~= 31, "Attempted use of reserved DTInt slot 31")
 		return self.NetEntity:GetDTInt(k, int)
 	end
 

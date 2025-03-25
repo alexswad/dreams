@@ -244,11 +244,12 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 	local lights = {}
 	for k, v in pairs(entities) do
 		if v.classname ~= "light" and v.classname ~= "light_spot" then continue end
-		local name = v.targetname or "Light_"
-		if names[name] then
-			name = name .. names[name]
+		local bname = v.targetname or "Light_"
+		local name = bname
+		if names[bname] then
+			name = bname .. names[bname]
 		end
-		names[name] = (names[name] or 1) + 1
+		names[bname] = (names[bname] or 1) + 1
 
 		local light = {
 			type = v.classname,
@@ -267,16 +268,17 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 	local marks = {}
 	for k, v in pairs(entities) do
 		if v.classname ~= "info_teleport_destination" and v.classname ~= "info_target" then continue end
-		local name = v.targetname or "mark"
+		local bname = v.targetname or "mark"
+		local name = bname
 		local mark = {
 			pos = v.origin,
 			angles = v.angles,
 		}
 
-		if names[name] then
-			name = name .. names[name]
+		if names[bname] then
+			name = name .. names[bname]
 		end
-		names[name] = (names[name] or 1) + 1
+		names[bname] = (names[bname] or 1) + 1
 		marks[name] = mark
 	end
 
