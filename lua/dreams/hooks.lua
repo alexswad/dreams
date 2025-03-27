@@ -39,6 +39,8 @@ if SERVER then
 
 	local ondeath = function(ply)
 		if not ply:IsDreaming() then return end
+		local rag = ply:GetRagdollEntity()
+		if IsValid(rag) then rag:Remove() end
 		timer.Simple(0.1, function()
 			ply:SetDream(0)
 		end)
