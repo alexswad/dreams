@@ -236,7 +236,7 @@ local function check(a, b, c, p)
 end
 lib.InsideOutTest = check
 
-function lib.TracePhys(phys, start, dir)
+function lib.TracePhys(phys, start, dir, dist_sqr)
 	local chit, cwd, cs
 	for _, s in ipairs(phys) do
 		local plane = s.plane
@@ -245,6 +245,9 @@ function lib.TracePhys(phys, start, dir)
 		local hit = intersectrayplane(start, dir, plane[1], norm)
 		local wd = hit and v_Dot(start - hit, norm) or 0
 		if hit and wd > 0 then
+			local hdist = v_DistToSqr(hit, start)
+			if dist_sqr and hdist > dist_sqr then continue end
+			if chit and v_DistToSqr(chit, start) < hdist then continue end
 			local verts = s.verts
 			local n_verts = tbl_Count(verts)
 
@@ -256,7 +259,6 @@ function lib.TracePhys(phys, start, dir)
 				end
 			end
 			if dobreak then continue end
-			if chit and v_DistToSqr(chit, start) < v_DistToSqr(hit, start) then continue end
 			chit = hit
 			cwd = wd
 			cs = s

@@ -48,7 +48,6 @@ function DREAMS:Draw(ply, debug)
 		render.SuppressEngineLighting(true)
 
 		v:SetNetworkOrigin(v:GetDTVector(31))
-		v:SetPos(v:GetDTVector(31))
 
 		if not v.DreamRoomCache or v.DreamRoomCache < CurTime() then
 			local pos = v:GetDreamPos()

@@ -73,6 +73,10 @@ function pmeta:GetVelocity()
 	return ply_GetVelocity(self)
 end
 
+function pmeta:SetDream(id)
+	ply_SetDTInt(self, 31, id)
+end
+
 if SERVER then
 	function pmeta:SetDream(id)
 		if isstring(id) then
@@ -187,7 +191,8 @@ if CLIENT then
 		end
 	end
 
-	function DREAMS:HUDShouldDraw(ply, string)
+	function DREAMS:HUDShouldDraw(ply, str)
+		if str == "CHudWeaponSelection" then return false end
 	end
 end
 
@@ -211,19 +216,16 @@ if SERVER then
 		if not IsValid(attacker) and dmg:GetDamageType() ~= DMG_GENERIC then return true end
 		if IsValid(attacker) and (not attacker:IsPlayer() or attacker:GetDreamID() ~= ply:GetDreamID()) then return true end
 	end
+
+	function DREAMS:End(ply)
+		local starts = ents.FindByClass("info_player_start")
+		local start = starts[math.random(#starts)] or starts[1]
+		ply:SetPos(IsValid(start) and start:GetPos() + Vector(0, 0, 1) or ply:GetPos())
+		ply:SetAbsVelocity(vector_origin)
+		self:SendEndCommand(ply)
+	end
 else
 	function DREAMS:Start(ply)
-	end
-
-	function DREAMS:PrePlayerDraw(ply)
-		if ply:GetDreamID() ~= LocalPlayer():GetDreamID() then
-			if not LocalPlayer():IsDreaming() then
-				ply:SetPos(ply:GetPos() + Vector(0, 0, -2500))
-			else
-				ply:SetRenderOrigin(nil)
-			end
-			return true
-		end
 	end
 end
 
@@ -232,12 +234,6 @@ function DREAMS:SwitchWeapon(ply, old, new)
 end
 
 function DREAMS:Think(ply)
-end
-
-function DREAMS:End(ply)
-	local starts = ents.FindByClass("info_player_start")
-	local start = starts[math.random(#starts)] or starts[1]
-	ply:SetPos((IsValid(start) and start:GetPos() + Vector(0, 0, 1) or vector_origin) + Angle(0, math.Rand(1, 360), 45):Forward() * math.random(72, 120))
 end
 
 //////////////////////////////////

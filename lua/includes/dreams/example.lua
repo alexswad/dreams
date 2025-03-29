@@ -52,9 +52,11 @@ end
 
 function DREAMS:Start(ply) // Player is actually in a world position so that they're properly networked, then positioned clientside
 	Dreams.Meta.Start(self, ply) // Setups the player's positioning in the world. You would normally want to call this unless you know what your doing
+	if SERVER then ply:SetDreamPos(self.Rooms["rainhallway"].Marks["test"].pos) end // Spawn the player at our info_teleport_destination
 end
 
 function DREAMS:End(ply)
+	Dreams.Meta.End(self, ply) // Resets the player positioning to Spawn since they're probably in the skybox
 end
 
 function DREAMS:SwitchWeapon(ply, old, new) // return true to prevent, default will only allow player to switch to nothing

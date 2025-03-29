@@ -99,9 +99,14 @@ hook.Add("PlayerSwitchWeapon", "!!!dreams_SwitchWeapon", function(ply, old, new)
 end)
 
 hook.Add("PrePlayerDraw", "!!!dreams_DrawPlayer", function(ply, flags)
-	if not ply:IsDreaming() then return end
-	local dream = ply:GetDream()
-	return dream:PrePlayerDraw(ply, flags)
+	if ply:GetDreamID() ~= LocalPlayer():GetDreamID() then
+		if not LocalPlayer():IsDreaming() then
+			ply:SetNetworkOrigin(ply:GetPos() + Vector(0, 0, -2500)) // hide real players from people who are not dreaming
+		else
+			ply:SetNetworkOrigin(ply:GetPos())
+		end
+		return true
+	end
 end)
 
 hook.Add("EntityTakeDamage", "!!!!dreams_TakeDamage", function(ent, dmg)
