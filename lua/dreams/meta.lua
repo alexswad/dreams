@@ -227,6 +227,9 @@ if SERVER then
 else
 	function DREAMS:Start(ply)
 	end
+
+	function DREAMS:End(ply)
+	end
 end
 
 function DREAMS:SwitchWeapon(ply, old, new)
