@@ -87,9 +87,9 @@ function DREAMS:Draw(ply, debug)
 		local res, norm, middle = false
 		local didhit = false
 
-		local thit = lib.TraceRayPhys(ply.DreamRoom.phys, ply:EyePos(), ply:EyeAngles():Forward(), 500)
+		local thit = lib.TraceRayPhys(ply.DreamRoom.phys, ply:EyePos(), ply:EyeAngles():Forward(), 100)
 
-		render.DrawLine(ply:EyePos() - Vector(0, 10, 10), ply:EyePos() + ply:EyeAngles():Forward() * 500, thit and Color(0, 255, 0) or Color(255, 0 , 0), false)
+		render.DrawLine(ply:EyePos() - Vector(0, 10, 10), ply:EyePos() + ply:EyeAngles():Forward() * 100, thit and Color(0, 255, 0) or Color(255, 0 , 0), false)
 
 		for k, v in ipairs(ply.DreamRoom.phys) do
 

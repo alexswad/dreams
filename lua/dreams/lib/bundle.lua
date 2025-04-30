@@ -7,7 +7,7 @@ function Dreams.Bundle.Save(tbl, fname)
 	local json = util.TableToJSON(tbl)
 	if not json then error("Failure creating JSON") end
 	file.Write("dreams/" .. fname .. ".dat", util.Compress(json))
-	Dreams.Print("[DREAMS] Generated Dream DATFILE @ garrysmod/data/dreams/" .. fname .. ".dat")
+	Dreams.Print("Generated Dream DATFILE @ garrysmod/data/dreams/" .. fname .. ".dat")
 end
 
 function Dreams.Bundle.Load(fpath, dir)
