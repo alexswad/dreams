@@ -98,7 +98,7 @@ if SERVER then
 		self.NetEntity["SetDT" .. type](self.NetEntity, k, var)
 		if not skip then self.DTVars[type] = self.DTVars[type] or {}; self.DTVars[type][k] = var end
 	end
-	//
+	--
 	function DREAMS:GetDTVector(k, vec)
 		self.DTVars["Vector"] = self.DTVars["Vector"] or {}
 		return self.DTVars["Vector"][k] or vec
@@ -173,7 +173,7 @@ else
 	function DREAMS:SetDTFloat(k, float)
 		self.NetEntity:SetDTFloat(k, float)
 	end
-	//
+	--
 	function DREAMS:GetDTVector(k, vec)
 		return self.NetEntity:GetDTVector(k, vec)
 	end
@@ -204,7 +204,7 @@ else
 	end
 end
 
-///// Commands ////
+---- Commands ----
 
 function DREAMS:AddNetReceiver(string, func)
 	self.NetReceivers[string] = func

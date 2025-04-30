@@ -2,13 +2,15 @@ Dreams = Dreams or {}
 
 AddCSLuaFile("dreams/hooks.lua")
 AddCSLuaFile("dreams/meta.lua")
-AddCSLuaFile("dreams/lib.lua")
-AddCSLuaFile("dreams/vmf_converter.lua")
-include("dreams/lib.lua")
+AddCSLuaFile("dreams/lib/lib.lua")
+AddCSLuaFile("dreams/lib/bundle.lua")
+AddCSLuaFile("dreams/lib/vmf_convert.lua")
+
+include("dreams/lib/lib.lua")
+include("dreams/lib/bundle.lua")
+include("dreams/lib/vmf_convert.lua")
 include("dreams/hooks.lua")
 include("dreams/meta.lua")
-if CLIENT then include("dreams/vmf_converter.lua") end
-
 
 local function LoadDreams()
 	local files = file.Find("includes/dreams/*.lua", "LUA")
@@ -41,6 +43,13 @@ end
 local function Init()
 	Dreams.HasInit = true
 	for k, v in pairs(Dreams.List) do
+		for a, room in ipairs(v.ListRooms) do
+			if not room.Props then continue end
+			for b, prop in ipairs(room.Props) do
+				util.PrecacheModel(prop.model)
+				print("DREAMS: Precached " .. prop.model)
+			end
+		end
 		if v.SetupDataTables then v:CheckNetwork() v:SetupDataTables() end
 		if v.Init then v:Init() end
 	end

@@ -34,9 +34,8 @@ local ply_GetDTInt = emeta.GetDTInt
 
 local Vector = Vector
 local Angle = Angle
-local ipairs = ipairs
 
-///////////////////////////////////////////
+------------------------------------------
 
 function pmeta:IsDreaming()
 	return ply_GetDTInt(self, 31, 0) ~= 0
@@ -89,14 +88,21 @@ if SERVER then
 		local cdream = self:GetDream()
 		if cdream then
 			cdream:End(self)
+		else
+			self.DREAMS_LastCC = self:GetCustomCollisionCheck()
+			self.DREAMS_LastAP = self:GetAvoidPlayers()
 		end
 
 		if not Dreams.List[id] then
 			ply_SetDTInt(self, 31, 0)
-			self:SetCollisionGroup(COLLISION_GROUP_NONE)
+			self:SetCustomCollisionCheck(self.DREAMS_LastCC or false)
+			self:SetAvoidPlayers(self.DREAMS_LastAP)
 			self:SetMoveType(MOVETYPE_WALK)
 			return
 		end
+		self:SetCustomCollisionCheck(true)
+		self:CollisionRulesChanged()
+		self:SetAvoidPlayers(false)
 
 		ply_SetDTInt(self, 31, id)
 		self:GetDream():Start(self)
@@ -110,48 +116,40 @@ if SERVER then
 end
 
 
-////////////////////////////////////////////
+--------------------------------------------
 
 function DREAMS:AddRoom(name, mdl, phy, offset)
 	offset = offset or vector_origin
-	local phys = util.JSONToTable(util.Decompress(file.Read(phy, "GAME") or "") or "")
-	local marks
-	if phys then
-		for k, side in ipairs(phys) do
-			for _, vert in pairs(side.verts) do
-				side.verts[_] = vert + offset
-			end
-			for _, vert in pairs(side.plane) do
-				side.plane[_] = vert + offset
-			end
-		end
-		phys.OBB[1] = phys.OBB[1] + offset
-		phys.OBB[2] = phys.OBB[2] + offset
-		if phys.Marks then
-			marks = {}
-			for k, v in pairs(phys.Marks) do
+	local tbl = Dreams.Bundle.Load(phy, "GAME")
+	if tbl then
+		if tbl.phys then Dreams.Lib.PhysOffset(tbl.phys, offset) end
+		if tbl.marks then
+			for k, v in pairs(tbl.marks) do
 				v.pos = v.pos + offset
-				marks[k] = v
 			end
 		end
-		phys.Marks = nil
-		table.insert(self.Phys, phys)
+		self.Rooms[name] = {Marks = tbl.marks, name = name, mdl = mdl, phys = tbl.phys, phy_string = phy, offset = offset, Props = props}
+		if tbl.phys then tbl.phys.Room = self.Rooms[name] end
+		table.insert(self.Phys, tbl.phys)
+	else
+		self.Rooms[name] = {name = name, mdl = mdl}
 	end
-	self.Rooms[name] = {Marks = marks, name = name, mdl = mdl, phys = phys, phy_string = phy, offset = offset}
-	if phys then phys.Room = self.Rooms[name] end
 
 	table.insert(self.ListRooms, self.Rooms[name])
 	return self.Rooms[name]
 end
 
-////////////////////////////////////////
+-- function DREAMS:KeyPress(ply, key)
+-- 	if CLIENT and key == IN_USE then self.Debug = (self.Debug or 0) % 1 + 1 end
+-- end
+----------------------------------------
 
-// RUBAT PLEAAASEEEE
-// PLEASASEEEEE DONT PATCH THIS
-// IM ONLY A LEVEL 1 CODER AND I NEED THIS FOR RENDERSCENE
-// IF YOU PATCH THIS I WILL HAVE TO MAKE A SHITTY CHATBOX AND HUD TO REPLACE WHATS MISSING
-// AND THEN MAKE A SHITTY CHATBOX DETECTOR FOR COMPATABILITY
-// FOR ALL THAT IS HOLY. PLEASE. DO NOT PATCH THIS.
+-- RUBAT PLEAAASEEEE
+-- PLEASASEEEEE DONT PATCH THIS
+-- IM ONLY A LEVEL 1 CODER AND I NEED THIS FOR RENDERSCENE
+-- IF YOU PATCH THIS I WILL HAVE TO MAKE A SHITTY CHATBOX AND HUD TO REPLACE WHATS MISSING
+-- AND THEN MAKE A SHITTY CHATBOX DETECTOR FOR COMPATABILITY
+-- FOR ALL THAT IS HOLY. PLEASE. DO NOT PATCH THIS.
 
 if CLIENT then
 	local open_chat = chat.Open
@@ -200,10 +198,9 @@ end
 if SERVER then
 	function DREAMS:Start(ply)
 		local starts = ents.FindByClass("info_player_start")
-		local start = ents.FindByClass("sky_camera")[1] or starts[math.random(#starts)] or starts[1]
-		ply:SetPos((IsValid(start) and start:GetPos() + Vector(0, 0, 1) or vector_origin) + Angle(0, math.Rand(1, 360), 45):Forward() * math.random(72, 120))
+		local start = starts[math.random(#starts)] or starts[1]
+		ply:SetPos((IsValid(start) and start:GetPos() + Vector(0, 0, 64) or vector_origin) + Angle(0, math.Rand(-360, 360), 45):Forward() * math.random(100, 180))
 		ply:DropToFloor()
-		ply:SetCollisionGroup(COLLISION_GROUP_PASSABLE_DOOR)
 		ply:SetNoTarget(true)
 		ply:SetActiveWeapon(NULL)
 		ply:SetMoveType(MOVETYPE_NONE)
@@ -239,7 +236,7 @@ end
 function DREAMS:Think(ply)
 end
 
-//////////////////////////////////
+----------------------------------
 pmeta.O_GetActiveWeapon = pmeta.O_GetActiveWeapon or pmeta.GetActiveWeapon
 
 function pmeta:GetActiveWeapon()

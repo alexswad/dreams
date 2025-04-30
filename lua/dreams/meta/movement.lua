@@ -12,8 +12,6 @@ local mv_GetMoveAngles = mvmeta.GetMoveAngles
 local mv_GetOrigin = mvmeta.GetOrigin
 local mv_GetVelocity = mvmeta.GetVelocity
 
-local tbl_Count = table.Count
-
 local cmd_KeyDown = cmdmeta.KeyDown
 local ply_GetAbsVelocity = emeta.GetAbsVelocity
 local ply_GetDTVector = emeta.GetDTVector
@@ -23,16 +21,12 @@ local ply_GetTable = emeta.GetTable
 local v_Add = vmeta.Add
 local v_Normalize = vmeta.Normalize
 local v_WithinAABox = vmeta.WithinAABox
-local v_Cross = vmeta.Cross
 local v_Dot = vmeta.Dot
 local v_IsEqualTol = vmeta.IsEqualTol
-local v_DistToSqr = vmeta.DistToSqr
 local v_SetUnpacked = vmeta.SetUnpacked
-local v_Length = vmeta.Length
 
 local math_min = math.min
 local math_max = math.max
-local math_abs = math.abs
 local FrameTime = FrameTime
 local Vector = Vector
 local Angle = Angle
@@ -44,20 +38,7 @@ local IN_MOVELEFT = IN_MOVELEFT
 local IN_FORWARD = IN_FORWARD
 local IN_BACK = IN_BACK
 
-local intersectrayplane = util.IntersectRayWithPlane
-local normal = function(c, b, a)
-	local cr = v_Cross(b - a, c - a)
-	v_Normalize(cr)
-	return cr
-end
-
-local function check(a, b, c, p)
-	local cr1 = v_Cross(b - a, c - a)
-	local cr2 = v_Cross(b - a, p - a)
-	return v_Dot(cr1, cr2) >= 0
-end
-
-///////////////////////////////////////////
+-------------------------------------------------
 DREAMS.MoveSpeed = 20
 DREAMS.ShiftSpeed = 40
 DREAMS.JumpPower = 400
@@ -85,7 +66,7 @@ Dreams.Meta.TranslateMovement = get_move
 function DREAMS:StartMove(ply, mv, cmd)
 	mv_SetVelocity(mv, ply_GetAbsVelocity(ply))
 	mv_SetOrigin(mv, mv_GetOrigin(mv))
-
+	if ply:IsBot() then cmd:AddKey(IN_FORWARD) end
 	local ang = mv_GetMoveAngles(mv)
 	local pos = Vector(0, 0, 0)
 	local speed = self.MoveSpeed
@@ -107,7 +88,7 @@ function DREAMS:StartMove(ply, mv, cmd)
 	return true
 end
 
-// For Debug
+-- For Debug mostly
 function DREAMS:StartMoveFly(ply, mv, cmd)
 	mv_SetVelocity(mv, ply_GetAbsVelocity(ply))
 	mv_SetOrigin(mv, mv_GetOrigin(mv))
@@ -139,63 +120,84 @@ function DREAMS:StartMoveFly(ply, mv, cmd)
 	return true
 end
 
-local woff = Vector(0, 0, 32)
-local woff2 = Vector(0, 0, 2)
-local up = Vector(0, 0, 1)
-function DREAMS:DoMove(ply, mv)
-	local vel, org = mv_GetVelocity(mv), ply_GetDTVector(ply, 31)
-	local vel_len = v_Length(vel)
+local InterCylAABB = Dreams.Lib.IntersectABCylinderWithAABB
+local InterCylOBB = Dreams.Lib.IntersectABCylinderWithOBB
+local InterCylPlane = Dreams.Lib.IntersectABCylinderWithPlane
 
+local vector_up = Vector(0, 0, 1)
+
+local xnorm = Vector(1, 0, 0)
+local neg_xnorm = -xnorm
+local ynorm = Vector(0, 1, 0)
+local neg_ynorm = -ynorm
+local znorm = Vector(0, 0, 1)
+local neg_znorm = -znorm
+
+local function clear_axes(vel, norm)
+	if norm.z < 0 then
+		local anorm = norm.z > 0 and znorm or neg_znorm
+		vel = vel + anorm * math_max(0, v_Dot(vel, -anorm))
+	elseif norm.z >= 0 then
+		return vel + norm * math_max(0, v_Dot(vel, -norm))
+	end
+	if norm.x ~= 0 then
+		local anorm = norm.x > 0 and xnorm or neg_xnorm
+		vel = vel + anorm * math_max(0, v_Dot(vel, -anorm))
+	end
+	if norm.y ~= 0 then
+		local anorm = norm.y > 0 and ynorm or neg_ynorm
+		vel = vel + anorm * math_max(0, v_Dot(vel, -anorm))
+	end
+	return vel
+end
+
+function DREAMS:DoMove(ply, mv)
+	local vel, morg = mv_GetVelocity(mv), ply_GetDTVector(ply, 31)
+	local org = morg + vel * FrameTime()
+	local ptbl = ply_GetTable(ply)
 	local onfloor
 	for k, v in ipairs(self.Phys) do
-		if v.OBB and not v_WithinAABox(org, v.OBB[1], v.OBB[2]) then continue end
-		for _, s in ipairs(v) do
-			local plane = s.plane
-			local norm = s.normal or normal(plane[1], plane[2], plane[3])
-			s.normal = norm
-			local worg, worg_off = org + woff, woff
-			local hit = intersectrayplane(worg, -norm, plane[1], norm)
-			local fhit = v_IsEqualTol(norm, up, 0.3) and intersectrayplane(org + up * vel_len * 2, -up, plane[1], norm)
-			local wd, fd = hit and v_Dot(worg - hit, norm) or 0, fhit and v_Dot(org - fhit + norm, norm) or 0
-
-			if not fhit and not hit then
-				worg = org + woff2 + norm * 2
-				worg_off = woff2
-				hit = intersectrayplane(worg, -norm, plane[1], norm)
-			end
-
-			if not fhit and hit and (v_DistToSqr(hit, worg) < 17 ^ 2 or wd < 1 and wd > -4) or fhit and (v_DistToSqr(fhit, org) < 1 or fd < 0 and fd > -4 * math_abs(vel.z / 10)) then
-				local verts = s.verts
-				local n_verts = tbl_Count(verts)
-				local e = fhit or hit
-
-				local dobreak
-				for i = 0, n_verts - 1 do
-					if not check(verts[i], verts[(i + 1) % n_verts], verts[(i + 2) % n_verts], e) then
-						dobreak = true
-						break
+		if not v_WithinAABox(org, v.AA, v.BB) then continue end
+		for a, s in ipairs(v) do
+			local t = s.PType
+			local res, norm, hit
+			if t == DREAMSC_AABB then
+				res, norm, hit = InterCylAABB(org, 16, 64, s.AA, s.BB)
+			elseif t == DREAMSC_OBB then
+				local axes = s.OBB_Axes
+				res, norm, hit =  InterCylOBB(org, 16, 64, s.Origin, s.OBB_Ang, s.OBB_Min, s.OBB_Max, axes[1], axes[2], axes[3])
+			elseif t == DREAMSC_PLANE then
+				if not v_WithinAABox(org, s.PAA, s.PBB) then continue end
+				for b, side in ipairs(s) do
+					local pnorm = side.normal
+					local pres, phit = InterCylPlane(org, 16, 64, side.origin, pnorm, side.verts)
+					if pres then
+						if v_IsEqualTol(pnorm, vector_up, 0.3) then
+							onfloor = true
+							pnorm = vector_up
+						end
+						vel = vel + pnorm * math_max(0, v_Dot(vel, -pnorm))
+						morg = morg + pnorm * math_max(0, v_Dot(phit - morg, pnorm))
 					end
 				end
-				if dobreak then continue end
+			end
 
-				if fhit then
+			if res then
+				if v_IsEqualTol(norm, vector_up, 0.5) then
 					onfloor = true
-					v_SetUnpacked(org, org.x, org.y, fhit.z)
-					v_SetUnpacked(vel, vel.x, vel.y, 0.1)
-				else
-					vel = vel - norm * v_Dot(vel, norm)
-					org = hit - worg_off + norm * 17
 				end
+				if hit then vel = vel + hit * 32 end
+				vel = clear_axes(vel, norm)
 			end
 		end
-		ply_GetTable(ply).DreamRoom = v.Room
+		ptbl.DreamRoom = v.Room
 	end
 
-	if onfloor and mv:KeyPressed(IN_JUMP) then
+	if onfloor and mv:KeyDown(IN_JUMP) then
 		v_SetUnpacked(vel, vel.x, vel.y, self.JumpPower)
 	end
 
-	ply_SetDTVector(ply, 31, org + vel * FrameTime())
+	ply_SetDTVector(ply, 31, morg + vel * FrameTime())
 	mv_SetVelocity(mv, vel)
 	return true
 end
@@ -206,8 +208,6 @@ function DREAMS:FinishMove(ply, mv)
 	return true
 end
 
-local height = Vector(0, 0, 64)
-function DREAMS:CalcView(ply, view)
-	view.angles = ply:EyeAngles()
-	view.origin = ply:GetDTVector(31) + height
-end
+-- if onfloor and mv:KeyPressed(IN_JUMP) then
+-- 	v_SetUnpacked(vel, vel.x, vel.y, self.JumpPower)
+-- end

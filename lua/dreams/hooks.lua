@@ -1,7 +1,7 @@
 if CLIENT then
 	hook.Add("RenderScene", "!!dreams_RenderDreams", function(origin, angles, fov)
 		local ply = LocalPlayer()
-		if not ply:IsDreaming() then return end
+		if not ply.IsDreaming or not ply:IsDreaming() then return end
 		local dream = ply:GetDream()
 		return dream:RenderScene(ply)
 	end)
@@ -15,7 +15,7 @@ if CLIENT then
 
 	hook.Add("EntityEmitSound", "!!!!dreams_EmitSound", function(tbl)
 		local ply = LocalPlayer()
-		if not ply:IsDreaming() then return end
+		if not ply.IsDreaming or not ply:IsDreaming() then return end
 		local dream = ply:GetDream()
 		return dream:EntityEmitSound(tbl)
 	end)
@@ -98,10 +98,31 @@ hook.Add("PlayerSwitchWeapon", "!!!dreams_SwitchWeapon", function(ply, old, new)
 	return dream:SwitchWeapon(ply, old, new)
 end)
 
+hook.Add("KeyRelease", "!!!dreams_KeyRelease", function(ply, key)
+	if not ply:IsDreaming() then return end
+	local dream = ply:GetDream()
+	if dream.KeyRelease then dream:KeyRelease(ply, key) end
+end)
+
+hook.Add("KeyPress", "!!!dreams_KeyPress", function(ply, key)
+	if not ply:IsDreaming() then return end
+	local dream = ply:GetDream()
+	if dream.KeyPress then dream:KeyPress(ply, key) end
+end)
+
+hook.Add("ShouldCollide", "!!!dreams_collisions", function(ent1, ent2)
+	if ent1:IsPlayer() and ent1:IsDreaming() or ent2:IsPlayer() and ent2:IsDreaming() then return false end
+end)
+
+hook.Add("PlayerFootstep", "!!!dreams_footstep", function(ply)
+	if not ply.IsDreaming then return end
+	if ply:IsDreaming() or CLIENT and LocalPlayer():IsDreaming() then return true end
+end)
+
 hook.Add("PrePlayerDraw", "!!!dreams_DrawPlayer", function(ply, flags)
 	if ply:GetDreamID() ~= LocalPlayer():GetDreamID() then
 		if not LocalPlayer():IsDreaming() then
-			ply:SetNetworkOrigin(ply:GetPos() + Vector(0, 0, -2500)) // hide real players from people who are not dreaming
+			ply:SetNetworkOrigin(ply:GetPos() + Vector(0, 0, -2500)) -- hide real players from people who are not dreaming
 		else
 			ply:SetNetworkOrigin(ply:GetPos())
 		end

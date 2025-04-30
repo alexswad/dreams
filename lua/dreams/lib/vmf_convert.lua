@@ -1,3 +1,8 @@
+local lib = Dreams.Lib
+local vmf = {}
+Dreams.VMF = vmf
+
+local ang_zero = Angle()
 local function find(folder, list)
 	list = list or {}
 	local files, folders = file.Find(folder .. "*", "GAME")
@@ -30,11 +35,13 @@ local function tovector(str)
 	local t = string.Explode(" ", str)
 	return Vector(tonumber(t[1]), tonumber(t[2]), tonumber(t[3]))
 end
+vmf.tovector = tovector
 
 local function toangle(str)
 	local t = string.Explode(" ", str)
 	return Angle(tonumber(t[1]), tonumber(t[2]), tonumber(t[3]))
 end
+vmf.toangle = toangle
 
 local function trim(s, char)
 	return string.match( s, "^" .. char .. "*(.-)" .. char .. "*$" ) or s
@@ -46,6 +53,16 @@ local function count(str, it)
 		a = a + 1
 	end
 	return a
+end
+
+local function remove_up(t, done)
+	done = done or {}
+	if not istable(t) or done[t] then return end
+	t._up = nil
+	done[t] = true
+	for k, v in pairs(t) do
+		remove_up(v, done)
+	end
 end
 
 local lheader = [[
@@ -120,7 +137,7 @@ local light_pstr = [[
     }
 ]]
 
-local function write_lights(fname, lights)
+function vmf.SaveLights(fname, lights)
 	if table.Count(lights) == 0 then return end
 	local str = lheader
 	for k, v in pairs(lights) do
@@ -144,13 +161,27 @@ local function write_lights(fname, lights)
 	end
 	str = str .. "}"
 
-	print("DREAMS: Generated Blender USD Light Data garrysmod/data/dreams/" .. fname .. ".usd.txt")
+	Dreams.Print("Generated Blender USD Light Data @ garrysmod/data/dreams/" .. fname .. ".usd.txt")
 	file.Write("dreams/" .. fname .. ".usd.txt", str)
 end
 
-concommand.Add("dreams_convertfile", function(ply, cmd, args)
-	local f = file.Read(args[1]:Trim(), "GAME")
+function vmf.ConvertLightEntity(v, name)
+	local bname = name or v.targetname or "Light"
 
+	local light = {
+		type = v.classname,
+		color = {unpack(string.Explode(" ", v._light))},
+		name = bname,
+		pos = v.origin,
+		angles = v.angles,
+		cone = v._cone
+	}
+
+	light.color = {tonumber(light.color[1]) / 255, tonumber(light.color[2]) / 255, tonumber(light.color[3]) / 255}
+	return light
+end
+
+function vmf.ExtractSolids(f)
 	local solids = {}
 	for k, v in pairs(string.Explode("solid", f)) do
 		if k == 1 then continue end
@@ -164,29 +195,7 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 		table.insert(solids, str)
 	end
 
-	local entities = {}
-	for k, v in pairs(string.Explode("entity", f)) do
-		if k == 1 then continue end
-		local str = ""
-		for a, b in pairs(string.Explode("}", v)) do
-			str = str .. b .. "}"
-			if count(str, "{") == count(str, "}") then
-				break
-			end
-		end
-		table.insert(entities, str)
-	end
-
-	local function remove_up(t, done)
-		done = done or {}
-		if not istable(t) or done[t] then return end
-		t._up = nil
-		done[t] = true
-		for k, v in pairs(t) do
-			remove_up(v, done)
-		end
-	end
-
+	local nsolids = {}
 	for k, v in pairs(solids) do
 		local t = {sides = {}}
 		local wt = t
@@ -216,7 +225,29 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 				wt = wt._up or t
 			end
 		end
-		solids[k] = t
+
+		t.editor = nil
+		if table.Count(t.sides) > 0 then
+			table.insert(nsolids, t)
+		end
+	end
+
+	remove_up(nsolids)
+	return nsolids
+end
+
+function vmf.ExtractEnts(f)
+	local entities = {}
+	for k, v in pairs(string.Explode("entity", f)) do
+		if k == 1 then continue end
+		local str = ""
+		for a, b in pairs(string.Explode("}", v)) do
+			str = str .. b .. "}"
+			if count(str, "{") == count(str, "}") then
+				break
+			end
+		end
+		table.insert(entities, str)
 	end
 
 	for k, v in pairs(entities) do
@@ -239,83 +270,159 @@ concommand.Add("dreams_convertfile", function(ply, cmd, args)
 		end
 		entities[k] = t
 	end
+	return entities
+end
 
-	local names = {}
-	local lights = {}
-	for k, v in pairs(entities) do
-		if v.classname ~= "light" and v.classname ~= "light_spot" then continue end
-		local bname = v.targetname or "Light_"
-		local name = bname
-		if names[bname] then
-			name = bname .. names[bname]
-		end
-		names[bname] = (names[bname] or 1) + 1
+DREAMSC_AABB = 1
+DREAMSC_OBB = 2
+DREAMSC_PLANE = 3
 
-		local light = {
-			type = v.classname,
-			color = {unpack(string.Explode(" ", v._light))},
-			name = name,
-			pos = v.origin,
-			angles = v.angles,
-			cone = v._cone
-		}
+local is_square = lib.IsSquare
 
-		light.color = {tonumber(light.color[1]) / 255, tonumber(light.color[2]) / 255, tonumber(light.color[3]) / 255}
-		table.insert(lights, light)
+local function check_normals(t, n)
+	for k, v in pairs(t) do
+		if v:IsEqualTol(n, 0.05) or v:IsEqualTol(-n, 0.05) then return false end
 	end
+	return true
+end
 
-	names = {}
-	local marks = {}
-	for k, v in pairs(entities) do
-		if v.classname ~= "info_teleport_destination" and v.classname ~= "info_target" then continue end
-		local bname = v.targetname or "mark"
-		local name = bname
-		local mark = {
-			pos = v.origin,
-			angles = v.angles,
-		}
-
-		if names[bname] then
-			name = name .. names[bname]
-		end
-		names[bname] = (names[bname] or 1) + 1
-		marks[name] = mark
-	end
-
-	remove_up(solids)
-	test_solids = solids
-
-	test_sides = {}
+function vmf.SolidToPhys(solid, optimize)
+	local ptype = DREAMSC_AABB
 	local min, max
-	local function minmax(xmin, xmax, vec)
-		return Vector(math.min(xmin.x, vec.x), math.min(xmin.y, vec.y), math.min(xmin.z, vec.z)), Vector(math.max(xmax.x, vec.x), math.max(xmax.y, vec.y), math.max(xmax.z, vec.z))
-	end
-	for k, v in pairs(solids) do
-		for a, side in pairs(v.sides) do
-			for _, vert in pairs(side.vertices_plus) do
-				min, max = minmax(min or vert, max or vert, vert)
-			end
-			local newverts = {}
-			for n, vert in pairs(side.vertices_plus) do
-				newverts[n - 1] = vert // dear john Lua... I know where you live...
-			end
+	local nsides = {}
+	local mnormals = {}
+	local smaterial
+	for _, v in pairs(solid.sides) do
+		local verts = v.vertices_plus
+		if not is_square(verts) then ptype = DREAMSC_PLANE end
 
-			if not side.material or side.material:lower():find("nodraw") then continue end
-			side = {
-				verts = newverts,
-				plane = side.plane
-			}
-			table.insert(test_sides, side)
+		local nverts = {}
+		local pmin, pmax
+		for n, vert in pairs(verts) do
+			min, max = lib.MinMaxVecs(min or vert, max or vert, vert)
+			pmin, pmax = lib.MinMaxVecs(pmin or vert, pmax or vert, vert)
+			nverts[n - 1] = vert
+		end
+		local middle = (pmax - pmin) / 2 + pmin
+
+		local normal = lib.PlaneToNormal(unpack(v.plane))
+		local cnorm = lib.MagnitudeToNormal(normal:Unpack())
+		if ptype == DREAMSC_AABB and not normal:IsEqualTol(cnorm, 0.1) then ptype = DREAMSC_OBB end
+		if check_normals(mnormals, normal) then
+			table.insert(mnormals, normal)
+		end
+
+		if v.material and v.material:lower():find("nodraw") then continue end
+		smaterial = smaterial or v.material
+		side = {
+			verts = nverts,
+			plane = v.plane,
+			normal = normal,
+			material = v.material,
+			id = v.id,
+			origin = middle
+		}
+		table.insert(nsides, side)
+	end
+
+	nsides.AA = min
+	nsides.BB = max
+	nsides.Origin = (max - min) / 2 + min
+	if ptype == DREAMSC_OBB then
+		local vm = lib.RotationMatrixFromNormals(unpack(mnormals))
+		local axes = {vm:GetForward(), vm:GetRight(), vm:GetUp()}
+		local ang = vm:GetAngles()
+		local omin, omax
+		nsides.OBB_Ang = ang
+		nsides.OBB_Axes = axes
+		for k, v in pairs(solid.sides) do
+			for n, vert in pairs(v.vertices_plus) do
+				vert = WorldToLocal(vert, ang_zero, nsides.Origin, ang)
+				omin, omax = lib.MinMaxVecs(omin or vert, omax or vert, vert)
+			end
+		end
+		nsides.HalfExtents = lib.HalfExtentsFromBox(omin, omax)
+		nsides.OBB_Min = omin
+		nsides.OBB_Max = omax
+	elseif ptype == DREAMSC_AABB then
+		nsides.HalfExtents = lib.HalfExtentsFromBox(min, max)
+	elseif ptype == DREAMSC_PLANE then
+		nsides.PAA = min - Vector(128, 128, 128)
+		nsides.PBB = max + Vector(128, 128, 128)
+	end
+
+	if optimize and (ptype == DREAMSC_AABB or ptype == DREAMSC_OBB) then
+		for _, s in ipairs(nsides) do
+			s.plane = nil
+			s.verts = nil
 		end
 	end
-	test_sides.OBB = {min, max}
-	if table.Count(marks) > 0 then test_sides.Marks = marks end
 
-	//PrintTable(test_sides)
-	local name = string.Explode("/", args[1])
-	name = name[#name]
-	file.CreateDir("dreams/")
-	file.Write("dreams/" .. name:Trim():StripExtension() .. ".dat", util.Compress(util.TableToJSON(test_sides)))
-	write_lights(name:Trim():StripExtension(), lights)
-	print("DREAMS: Generated DREAMINFO bin garrysmod/data/dreams/" .. name:Trim():StripExtension() .. ".dat")
-end, autocomplete)
+	nsides.PType = ptype
+	nsides.material = smaterial
+	nsides.id = solid.id
+	return nsides
+end
+
+function vmf.ConvertFile(f, optimize)
+	local nsolids = {}
+	local vents = vmf.ExtractEnts(f)
+	local marks = {}
+	local lights = {}
+	local mnames = {}
+
+	for k, v in pairs(vents) do
+		local cname = v.classname
+		if cname == "info_teleport_destination" or cname == "info_target" then
+			local bname = v.targetname or "mark"
+			local name = bname
+			local mark = {
+				pos = v.origin,
+				angles = v.angles,
+			}
+			if mnames[bname] then
+				name = bname .. mnames[bname]
+			end
+			mnames[bname] = (mnames[bname] or 1) + 1
+			marks[name] = mark
+		end
+		if cname == "light" or cname == "light_spot" then
+			table.insert(lights, vmf.ConvertLightEntity(v))
+		end
+		-- if cname == "prop_static" or cname == "prop_dynamic" then
+
+		-- end
+	end
+
+	local min, max
+	local solids = vmf.ExtractSolids(f)
+	for k, v in pairs(solids) do
+		local tbl = vmf.SolidToPhys(v, true)
+		nsolids[k] = tbl
+		min, max = lib.MinMaxVecs(min or tbl.AA, max or tbl.AA, tbl.AA)
+		min, max = lib.MinMaxVecs(min, max, tbl.BB)
+	end
+	nsolids.AA = min - Vector(128, 128, 128)
+	nsolids.BB = max + Vector(128, 128, 128)
+
+	return {
+		phys = nsolids,
+		marks = marks,
+		props = props,
+		lights = lights,
+	}
+end
+
+if SERVER then
+	concommand.Add("dreams_convertvmf", function(ply, cmd, args)
+		if ply and not ply:IsListenServerHost() then print("You must be the server console!") return end
+
+		file.CreateDir("dreams/")
+		local name = string.Explode("/", args[1])
+		name = name[#name]:StripExtension()
+		local f = file.Read(args[1]:Trim(), "GAME")
+		local data = vmf.ConvertFile(f, true)
+		vmf.SaveLights(name, data.lights)
+		Dreams.Bundle.Save(data, name)
+	end, autocomplete)
+end
