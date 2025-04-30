@@ -12,9 +12,9 @@ end
 
 function Dreams.Bundle.Load(fpath, dir)
 	local f = file.Read(fpath, dir or "DATA")
-	if not f then ErrorNoHalt("[DREAMS] Unable to read DREAM File " .. fpath .. " " .. (dir or "DATA")) return end
+	if not f then ErrorNoHalt("[DREAMS] Unable to read DREAM File " .. fpath .. " " .. (dir or "DATA") .. "\n") return end
 	local json = util.Decompress(f)
 	local data = util.JSONToTable(json or "")
-	if not data then ErrorNoHalt("[DREAMS] Can't decompress DREAM File " .. fpath .. " " .. (dir or "DATA")) return end
+	if not data then ErrorNoHalt("[DREAMS] Can't decompress DREAM File " .. fpath .. " " .. (dir or "DATA") .. "\n") return end
 	return data
 end

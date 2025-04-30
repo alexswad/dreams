@@ -172,12 +172,14 @@ function DREAMS:DoMove(ply, mv)
 					local pnorm = side.normal
 					local pres, phit = InterCylPlane(org, 16, 64, side.origin, pnorm, side.verts)
 					if pres then
+						local hnorm = pnorm
 						if v_IsEqualTol(pnorm, vector_up, 0.3) then
 							onfloor = true
-							pnorm = vector_up
+							hnorm = vector_up
 						end
-						vel = vel + pnorm * math_max(0, v_Dot(vel, -pnorm))
-						morg = morg + pnorm * math_max(0, v_Dot(phit - morg, pnorm))
+						morg = morg + pnorm * math.abs(math_min(math_max(-0.1, v_Dot(phit - org, pnorm)), 5))
+						org = morg + vel * FrameTime()
+						vel = vel + hnorm * math_max(0, v_Dot(vel, -hnorm))
 					end
 				end
 			end
