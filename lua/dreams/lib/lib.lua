@@ -201,7 +201,7 @@ end
 local ir_poly = lib.IntersectRayWithPPoly
 
 function lib.TraceRayPhys(phys, start, dir, dist)
-	local chit, cfrac, cnormal
+	local chit, cfrac, cnormal, csolid, cside
 	local delta = dir * dist
 	local endpos = start + delta
 	for a, s in ipairs(phys) do
@@ -212,6 +212,7 @@ function lib.TraceRayPhys(phys, start, dir, dist)
 				chit = hit
 				cfrac = frac
 				cnormal = normal
+				csolid = s
 			end
 		elseif t == DREAMSC_OBB then
 			local hit, normal, frac = ir_obb(start, delta, s.Origin, s.OBB_Ang, s.OBB_Min, s.OBB_Max)
@@ -219,6 +220,7 @@ function lib.TraceRayPhys(phys, start, dir, dist)
 				chit = hit
 				cfrac = frac
 				cnormal = normal
+				csolid = s
 			end
 		elseif t == DREAMSC_PLANE then
 			for b, side in ipairs(s) do
@@ -228,12 +230,14 @@ function lib.TraceRayPhys(phys, start, dir, dist)
 					chit = hit
 					cfrac = hit:Distance(start) / start:Distance(endpos)
 					cnormal = norm
+					csolid = s
+					cside = side
 				end
 			end
 		end
 	end
 
-	return chit, cfrac, cnormal
+	return chit, cfrac, cnormal, csolid, cside
 end
 ---------------------------
 function lib.RectToMeshEx(l, w, h, off, ignore, reverse, um, vm)
@@ -467,6 +471,23 @@ function lib.PlaneNeighbors(solid)
 		end
 		side.neighbors = neighbors
 	end
+end
+
+function lib.GeneratePhysOBB(origin, omin, omax, ang)
+	local nsides = {}
+	local vm = Matrix()
+	vm:SetAngles(ang)
+	local axes = {vm:GetForward(), vm:GetRight(), vm:GetUp()}
+	nsides.AA = omin
+	nsides.BB = omax
+	nsides.OBB_Ang = ang
+	nsides.OBB_Axes = axes
+	nsides.HalfExtents = lib.HalfExtentsFromBox(omin, omax)
+	nsides.OBB_Min = omin
+	nsides.OBB_Max = omax
+	nsides.PType = 2
+	nsides.Origin = origin
+	return nsides
 end
 
 function Dreams.Print(str)

@@ -82,7 +82,8 @@ function DREAMS:StartMove(ply, mv, cmd)
 		vel:Zero()
 	end
 
-	if vel.z < 0 then v_SetUnpacked(vel, vel.x, vel.y, math_max(math_min(vel.z, -1) * 1.111, -1400)) end
+	if ply.DREAMS_onfloor then v_SetUnpacked(vel, vel.x, vel.y, math.Clamp(vel.z, -3, 3))
+	elseif vel.z < 0 then v_SetUnpacked(vel, vel.x, vel.y, math_max(math_min(vel.z, -1) * 1.111, -1400)) end
 	v_Add(vel, Vector(0, 0, -self.Gravity * FrameTime()))
 	mv_SetVelocity(mv, vel)
 	return true

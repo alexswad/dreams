@@ -137,7 +137,7 @@ if SERVER then
 else
 	function DREAMS:CheckNetwork()
 		if not self.SetupDataTables or IsValid(self.NetEntity) then return end
-		for k, v in pairs(ents.FindByClass("dreams_net")) do
+		for k, v in ipairs(ents.FindByClass("dreams_net")) do
 			if v:GetDTInt(31) == self.ID then
 				self.NetEntity = v
 				break

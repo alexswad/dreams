@@ -370,17 +370,27 @@ function vmf.ConvertPropEntity(v)
 		skin = v.skin,
 		origin = v.origin,
 		angles = v.angles,
+		solid = tonumber(v.solid) or 2,
 	}
 	util.PrecacheModel(prop.model)
 
 	local ent = ents.Create("prop_dynamic")
+	if not IsValid(ent) then
+		ErrorNoHalt("[DREAMS] Failed to create entity reference for prop " .. v.model .. " (Indicies full?)\n")
+		return prop
+	end
+
 	ent:SetModel(v.model)
 	ent:Spawn()
+	local obmin, obmax = ent:OBBMins(), ent:OBBMaxs()
 	local phys = ent:GetPhysicsObject()
 	local mesh = IsValid(phys) and phys:GetMesh() or util.GetModelMeshes(prop.model)[1]
+	if not IsValid(phys) then Dreams.Debug("Prop " .. v.model .. " has no physics, treating as displacement") end
 	SafeRemoveEntity(ent:Spawn())
 
-	if mesh then
+	if prop.solid == 2 and obmin then
+		prop.phys = lib.GeneratePhysOBB(v.origin, obmin, obmax, v.angles)
+	elseif mesh and prop.solid == 6 then
 		prop.displace = mesh.triangles and true
 		local sides = {}
 		local cside = {}
