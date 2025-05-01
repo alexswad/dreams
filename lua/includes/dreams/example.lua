@@ -11,7 +11,7 @@ DREAMS:AddRoom("rainhallway", "models/rooms/rain_hallway.mdl", "data_static/drea
 -- DREAMS:DoMove(ply, mv)
 -- DREAMS:FinishMove(ply, mv)
 DREAMS.MoveSpeed = 40
-DREAMS.ShiftSpeed = 40
+DREAMS.ShiftSpeed = 60
 DREAMS.JumpPower = 400
 DREAMS.Gravity = 600
 DREAMS.Debug = 0
@@ -51,13 +51,9 @@ end
 function DREAMS:Think(ply) -- Called for every player serverside and localplayer clientside
 end
 
-function DREAMS:KeyPress(ply, key)
-	if CLIENT and key == IN_USE then self.Debug = (self.Debug or 0) % 2 + 1 end
-end
-
 function DREAMS:Start(ply) -- Player is actually in a world position so that they're properly networked, then positioned clientside
 	Dreams.Meta.Start(self, ply) -- Setups the player's positioning in the world. You would normally want to call this unless you know what your doing
-	if SERVER then ply:SetDreamPos(self.Rooms["rainhallway"].Marks["test"].pos) end -- Spawn the player at our info_teleport_destination
+	if SERVER then ply:SetDreamPos(self.Rooms["rainhallway"].marks["test"].pos) end -- Spawn the player at our info_teleport_destination
 end
 
 function DREAMS:End(ply)
@@ -66,6 +62,10 @@ end
 
 function DREAMS:SwitchWeapon(ply, old, new) -- return true to prevent, default will only allow player to switch to nothing
 	return Dreams.Meta.SwitchWeapon(self, ply, old, new)
+end
+
+function DREAMS:KeyPress(ply, key)
+	if CLIENT and key == IN_USE then self.Debug = (self.Debug or 0) % 2 + 1 end
 end
 
 -- If defined, will automatically create a DREAMS.NetEntity for easy networking

@@ -382,28 +382,90 @@ function lib.HalfExtentsFromBox(min, max)
 end
 ------------------------
 
-function lib.PhysOffset(phys_data, offset)
-	phys_data.AA = phys_data.AA + offset
-	phys_data.BB = phys_data.BB + offset
+function lib.PhysOffset(phys_data, offset, angle, displace)
+	if phys_data.AA then
+		phys_data.AA = phys_data.AA + offset
+		phys_data.BB = phys_data.BB + offset
+	end
 	for k, solid in ipairs(phys_data) do
 		solid.Origin = solid.Origin + offset
 		solid.AA = solid.AA + offset
 		solid.BB = solid.BB + offset
-		if solid.PAA then
+		if solid.PAA and not angle then
 			solid.PAA = solid.PAA + offset
 			solid.PBB = solid.PBB + offset
 		end
+
 		for _, side in ipairs(solid) do
-			side.origin = side.origin and side.origin + offset
+			if angle then
+				side.origin = side.origin and LocalToWorld(side.origin, ang_zero, vector_origin, angle)
+				side.normal = LocalToWorld(side.normal, ang_zero, vector_origin, angle)
+			end
 
 			for a, vert in pairs(side.verts or {}) do
+				if angle then
+					vert = LocalToWorld(vert, ang_zero, vector_origin, angle)
+				end
+
+				if side.normal.z > 0.2 and side.normal.z < 0.7 then
+					vert = vert + (vert - side.origin):GetNormalized() * 15
+				end
 				side.verts[a] = vert + offset
 			end
 
 			for a, plane in pairs(side.plane or {}) do
+				if angle then
+					plane = LocalToWorld(plane, ang_zero, vector_origin, angle)
+				end
 				side.plane[a] = plane + offset
 			end
+			side.origin = side.origin and side.origin + offset
 		end
+
+		if angle then
+			lib.SolidFixBounds(solid)
+		end
+	end
+end
+
+function lib.SolidFixBounds(solid)
+	local min, max
+	for k, tbl in ipairs(solid) do
+		min, max = lib.MinMaxVecs(min or solid.AA + tbl.origin, max or solid.AA + tbl.origin, solid.AA + tbl.origin)
+		min, max = lib.MinMaxVecs(min, max, solid.BB + tbl.origin)
+
+		for a, vert in pairs(tbl.verts or {}) do
+			min, max = lib.MinMaxVecs(min, max, vert)
+		end
+	end
+	solid.AA = min
+	solid.BB = max
+	if solid.PAA then
+		solid.PAA = min - Vector(128, 128, 128)
+		solid.PBB = max + Vector(128, 128, 128)
+	end
+end
+
+local function find_neighbors(solid, tvert, index)
+	local tab = {}
+	for _, side in ipairs(solid) do
+		for a, vert in pairs(side.verts or {}) do
+			if vert:IsEqualTol(tvert, 0.05) then
+				tab[_] = index
+			end
+		end
+	end
+	return tab
+end
+
+function lib.PlaneNeighbors(solid)
+	for _, side in ipairs(solid) do
+		local neighbors = {}
+		for a, vert in pairs(side.verts or {}) do
+			local n = find_neighbors(solid, vert, a)
+			if n then table.Merge(neighbors, n) end
+		end
+		side.neighbors = neighbors
 	end
 end
 

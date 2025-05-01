@@ -29,12 +29,12 @@ function DREAMS:Draw(ply, debug)
 
 		v.CMDL:DrawModel()
 
-		if v.Props then
-			for a, b in ipairs(v.Props) do
+		if v.props then
+			for a, b in ipairs(v.props) do
 				if not IsValid(b.CMDL) and b.CMDL ~= false then
 					b.CMDL = b.model and ClientsideModelSafe(b.model) or false
 					b.CMDL:SetNoDraw(true)
-					b.CMDL:SetRenderOrigin(b.pos)
+					b.CMDL:SetRenderOrigin(b.origin)
 					b.CMDL:SetRenderAngles(b.angles)
 				elseif b.CMDL == false then continue end
 				b.CMDL:DrawModel()

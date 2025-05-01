@@ -305,7 +305,7 @@ function vmf.SolidToPhys(solid, optimize)
 		end
 		local middle = (pmax - pmin) / 2 + pmin
 
-		local normal = lib.PlaneToNormal(unpack(v.plane))
+		local normal = v.normal or lib.PlaneToNormal(unpack(v.plane))
 		local cnorm = lib.MagnitudeToNormal(normal:Unpack())
 		if ptype == DREAMSC_AABB and not normal:IsEqualTol(cnorm, 0.1) then ptype = DREAMSC_OBB end
 		if check_normals(mnormals, normal) then
@@ -364,12 +364,54 @@ function vmf.SolidToPhys(solid, optimize)
 	return nsides
 end
 
+function vmf.ConvertPropEntity(v)
+	local prop = {
+		model = v.model,
+		skin = v.skin,
+		origin = v.origin,
+		angles = v.angles,
+	}
+	util.PrecacheModel(prop.model)
+
+	local ent = ents.Create("prop_dynamic")
+	ent:SetModel(v.model)
+	ent:Spawn()
+	local phys = ent:GetPhysicsObject()
+	local mesh = IsValid(phys) and phys:GetMesh() or util.GetModelMeshes(prop.model)[1]
+	SafeRemoveEntity(ent:Spawn())
+
+	if mesh then
+		prop.displace = mesh.triangles and true
+		local sides = {}
+		local cside = {}
+		local cplane = {}
+		for i, b in ipairs(mesh.triangles or mesh) do
+			cside[(i - 1) % 3 + 1] = b.pos
+			cplane[(i - 1) % 3 + 1] = b.pos
+			if (i - 1) % 3 + 1 == 3 then
+				table.insert(sides, {
+					vertices_plus = cside,
+					plane = cplane,
+					//normal = b.normal
+				})
+				cside = {}
+				cplane = {}
+			end
+		end
+
+		prop.phys = vmf.SolidToPhys({sides = sides})
+		Dreams.Lib.PhysOffset({prop.phys}, prop.origin, prop.angles, prop.displace)
+	end
+	return prop
+end
+
 function vmf.ConvertFile(f, optimize)
 	local nsolids = {}
 	local vents = vmf.ExtractEnts(f)
 	local marks = {}
 	local lights = {}
 	local mnames = {}
+	local props = {}
 
 	for k, v in pairs(vents) do
 		local cname = v.classname
@@ -389,9 +431,9 @@ function vmf.ConvertFile(f, optimize)
 		if cname == "light" or cname == "light_spot" then
 			table.insert(lights, vmf.ConvertLightEntity(v))
 		end
-		-- if cname == "prop_static" or cname == "prop_dynamic" then
-
-		-- end
+		if cname == "prop_static" or cname == "prop_dynamic" then
+			table.insert(props, vmf.ConvertPropEntity(v))
+		end
 	end
 
 	local min, max
@@ -402,9 +444,15 @@ function vmf.ConvertFile(f, optimize)
 		min, max = lib.MinMaxVecs(min or tbl.AA, max or tbl.AA, tbl.AA)
 		min, max = lib.MinMaxVecs(min, max, tbl.BB)
 	end
+
+	for k, v in pairs(props) do
+		tbl = v.phys
+		if not tbl then continue end
+		min, max = lib.MinMaxVecs(min or tbl.AA + v.origin, max or tbl.AA + v.origin, tbl.AA + v.origin)
+		min, max = lib.MinMaxVecs(min, max, tbl.BB + v.origin)
+	end
 	nsolids.AA = min - Vector(128, 128, 128)
 	nsolids.BB = max + Vector(128, 128, 128)
-
 	return {
 		phys = nsolids,
 		marks = marks,

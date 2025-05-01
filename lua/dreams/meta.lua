@@ -122,15 +122,29 @@ function DREAMS:AddRoom(name, mdl, phy, offset)
 	offset = offset or vector_origin
 	local tbl = Dreams.Bundle.Load(phy, "GAME")
 	if tbl then
-		if tbl.phys then Dreams.Lib.PhysOffset(tbl.phys, offset) end
 		if tbl.marks then
 			for k, v in pairs(tbl.marks) do
 				v.pos = v.pos + offset
 			end
 		end
-		self.Rooms[name] = {Marks = tbl.marks, name = name, mdl = mdl, phys = tbl.phys, phy_string = phy, offset = offset, Props = props}
-		if tbl.phys then tbl.phys.Room = self.Rooms[name] end
-		table.insert(self.Phys, tbl.phys)
+
+		if tbl.props then
+			for k, v in pairs(tbl.props) do
+				v.origin = v.origin + offset
+				if v.phys then
+					tbl.phys = tbl.phys or {}
+					table.insert(tbl.phys, v.phys)
+				end
+			end
+		end
+
+		self.Rooms[name] = {Marks = tbl.marks, marks = tbl.marks, name = name, mdl = mdl, phys = tbl.phys, phy_string = phy, offset = offset, props = tbl.props}
+
+		if tbl.phys then
+			Dreams.Lib.PhysOffset(tbl.phys, offset)
+			tbl.phys.Room = self.Rooms[name]
+			table.insert(self.Phys, tbl.phys)
+		end
 	else
 		self.Rooms[name] = {name = name, mdl = mdl}
 	end

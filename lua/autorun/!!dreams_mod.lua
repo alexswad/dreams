@@ -1,4 +1,5 @@
 Dreams = Dreams or {}
+Dreams._VERSION = 1.0
 
 AddCSLuaFile("dreams/hooks.lua")
 AddCSLuaFile("dreams/meta.lua")

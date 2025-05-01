@@ -138,7 +138,7 @@ local function clear_axes(vel, norm)
 		local anorm = norm.z > 0 and znorm or neg_znorm
 		vel = vel + anorm * math_max(0, v_Dot(vel, -anorm))
 	elseif norm.z >= 0 then
-		return vel + norm * math_max(0, v_Dot(vel, -norm))
+		return vel
 	end
 	if norm.x ~= 0 then
 		local anorm = norm.x > 0 and xnorm or neg_xnorm
@@ -171,15 +171,16 @@ function DREAMS:DoMove(ply, mv)
 				for b, side in ipairs(s) do
 					local pnorm = side.normal
 					local pres, phit = InterCylPlane(org, 16, 64, side.origin, pnorm, side.verts)
-					if pres then
+					if pres  then
 						local hnorm = pnorm
 						if v_IsEqualTol(pnorm, vector_up, 0.3) then
 							onfloor = true
 							hnorm = vector_up
 						end
-						morg = morg + pnorm * math.abs(math_min(math_max(-0.1, v_Dot(phit - org, pnorm)), 5))
+						morg = morg + pnorm * math.abs(math_min(math_max(-0.1, v_Dot(phit - org, pnorm)), 5)) * FrameTime()
 						org = morg + vel * FrameTime()
 						vel = vel + hnorm * math_max(0, v_Dot(vel, -hnorm))
+						vel = vel + pnorm * math_max(0, v_Dot(vel, -pnorm))
 					end
 				end
 			end
@@ -187,8 +188,11 @@ function DREAMS:DoMove(ply, mv)
 			if res then
 				if v_IsEqualTol(norm, vector_up, 0.5) then
 					onfloor = true
+				else
+					ptbl.DREAMS_onfloor = false
 				end
 				if hit then vel = vel + hit * 32 end
+				vel = vel + norm * math_max(0, v_Dot(vel, -norm))
 				vel = clear_axes(vel, norm)
 			end
 		end
@@ -197,7 +201,15 @@ function DREAMS:DoMove(ply, mv)
 
 	if onfloor and mv:KeyDown(IN_JUMP) then
 		v_SetUnpacked(vel, vel.x, vel.y, self.JumpPower)
+		ptbl.DREAMS_onfloor = false
+		onfloor = false
 	end
+
+	if not onfloor and ptbl.DREAMS_onfloor then
+		vel = vel - Vector(0, 0, 40)
+		morg = morg - Vector(0, 0, 0.1)
+	end
+	ptbl.DREAMS_onfloor = onfloor
 
 	ply_SetDTVector(ply, 31, morg + vel * FrameTime())
 	mv_SetVelocity(mv, vel)
