@@ -293,7 +293,8 @@ function vmf.SolidToPhys(solid, optimize)
 	local mnormals = {}
 	local smaterial
 	for _, v in pairs(solid.sides) do
-		local verts = v.vertices_plus
+		local verts = v.vertices_plus or v.verts
+		if not verts then Dreams.Print("VMF is missing important information, re-open with Hammer++ and save before converting") error("Missing index vertices_plus") end
 		if not is_square(verts) then ptype = DREAMSC_PLANE end
 
 		local nverts = {}
@@ -384,9 +385,9 @@ function vmf.ConvertPropEntity(v)
 	ent:Spawn()
 	local obmin, obmax = ent:OBBMins(), ent:OBBMaxs()
 	local phys = ent:GetPhysicsObject()
-	local mesh = IsValid(phys) and phys:GetMesh() or util.GetModelMeshes(prop.model)[1]
+	local mesh = IsValid(phys) and phys:GetMesh() or util.GetModelMeshes(prop.model) and util.GetModelMeshes(prop.model)[1]
 	if not IsValid(phys) then Dreams.Debug("Prop " .. v.model .. " has no physics, treating as displacement") end
-	SafeRemoveEntity(ent:Spawn())
+	SafeRemoveEntity(ent)
 
 	if prop.solid == 2 and obmin then
 		prop.phys = lib.GeneratePhysOBB(v.origin, obmin, obmax, v.angles)
@@ -402,7 +403,6 @@ function vmf.ConvertPropEntity(v)
 				table.insert(sides, {
 					vertices_plus = cside,
 					plane = cplane,
-					//normal = b.normal
 				})
 				cside = {}
 				cplane = {}

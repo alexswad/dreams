@@ -8,16 +8,17 @@ local ipairs = ipairs
 local ang_zero = Angle(0, 0, 0)
 local lib = Dreams.Lib
 function DREAMS:Draw(ply, debug)
+	debug = debug or self.Debug
 	local porg = ply:GetDTVector(31)
 	ply:SetPos(porg)
 	ply:SetNetworkOrigin(porg)
 	for k, v in ipairs(self.ListRooms) do
 		if not IsValid(v.CMDL) and v.CMDL ~= false then
-			v.CMDL = v.mdl and ClientsideModelSafe(v.mdl) or false
+			v.CMDL = v.mdl and ClientsideModelSafe(v.mdl, RENDERGROUP_BOTH) or false
 			v.CMDL:SetNoDraw(true)
-			v.CMDL:SetRenderOrigin(v.offset)
-		elseif v.CMDL == false then continue end
-		if debug ~= 1 and ply.DreamRoom and ply.DreamRoom ~= v then continue end
+			v.CMDL:SetRenderOrigin(v.mdl_origin or v.offset)
+		end
+		if debug == 0 and ply.DreamRoom and ply.DreamRoom ~= v then continue end
 
 		render.SuppressEngineLighting(true)
 		render.SetAmbientLight(0, 0 , 0)
@@ -27,7 +28,9 @@ function DREAMS:Draw(ply, debug)
 			render.ResetModelLighting(1, 1, 1)
 		end
 
-		v.CMDL:DrawModel()
+		if v.CMDL and not v.nodraw then
+			v.CMDL:DrawModel()
+		end
 
 		if v.props then
 			for a, b in ipairs(v.props) do
@@ -80,7 +83,6 @@ function DREAMS:Draw(ply, debug)
 		render.SuppressEngineLighting(false)
 	end
 
-	debug = debug or self.Debug
 	if debug == 1 and ply.DreamRoom then
 		local height = 64
 		local rad = 16

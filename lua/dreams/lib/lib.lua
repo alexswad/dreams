@@ -411,7 +411,7 @@ function lib.PhysOffset(phys_data, offset, angle, displace)
 					vert = LocalToWorld(vert, ang_zero, vector_origin, angle)
 				end
 
-				if side.normal.z > 0.2 and side.normal.z < 0.7 then
+				if displace and side.normal.z > 0.2 and side.normal.z < 0.7 then
 					vert = vert + (vert - side.origin):GetNormalized() * 15
 				end
 				side.verts[a] = vert + offset

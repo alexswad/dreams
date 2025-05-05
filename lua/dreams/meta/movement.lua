@@ -178,7 +178,7 @@ function DREAMS:DoMove(ply, mv)
 							onfloor = true
 							hnorm = vector_up
 						end
-						morg = morg + pnorm * math.abs(math_min(math_max(-0.1, v_Dot(phit - org, pnorm)), 5)) * FrameTime()
+						morg = morg + pnorm * math.abs(math_min(5, v_Dot(phit - org, -pnorm))) * FrameTime()
 						org = morg + vel * FrameTime()
 						vel = vel + hnorm * math_max(0, v_Dot(vel, -hnorm))
 						vel = vel + pnorm * math_max(0, v_Dot(vel, -pnorm))

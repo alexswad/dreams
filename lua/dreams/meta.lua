@@ -138,7 +138,7 @@ function DREAMS:AddRoom(name, mdl, phy, offset)
 			end
 		end
 
-		self.Rooms[name] = {Marks = tbl.marks, marks = tbl.marks, name = name, mdl = mdl, phys = tbl.phys, phy_string = phy, offset = offset, props = tbl.props}
+		self.Rooms[name] = {marks = tbl.marks, name = name, mdl = mdl, phys = tbl.phys, phy_string = phy, offset = offset, props = tbl.props}
 
 		if tbl.phys then
 			Dreams.Lib.PhysOffset(tbl.phys, offset)
@@ -158,13 +158,7 @@ end
 -- end
 ----------------------------------------
 
--- RUBAT PLEAAASEEEE
--- PLEASASEEEEE DONT PATCH THIS
--- IM ONLY A LEVEL 1 CODER AND I NEED THIS FOR RENDERSCENE
--- IF YOU PATCH THIS I WILL HAVE TO MAKE A SHITTY CHATBOX AND HUD TO REPLACE WHATS MISSING
--- AND THEN MAKE A SHITTY CHATBOX DETECTOR FOR COMPATABILITY
--- FOR ALL THAT IS HOLY. PLEASE. DO NOT PATCH THIS.
-
+-- please dont patch this rubat :(
 if CLIENT then
 	local open_chat = chat.Open
 	local close_chat = chat.Close
