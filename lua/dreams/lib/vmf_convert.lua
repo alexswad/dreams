@@ -252,11 +252,17 @@ function vmf.ExtractEnts(f)
 
 	for k, v in pairs(entities) do
 		local t = {}
+		local sid
 		for a, b in pairs(string.Explode("\n", v)) do
 			b = b:Trim()
 			if string.StartsWith(b, "\"") then
 				local prop = string.Explode("\"", b)
 				local propstr, pr = prop[2], prop[4]
+				if sid == true and propstr == "id" then
+					t.sid = pr
+					break
+				end
+
 				if propstr == "origin" then
 					t[propstr] = tovector(pr)
 				elseif propstr == "angles" then
@@ -264,7 +270,9 @@ function vmf.ExtractEnts(f)
 				else
 					t[propstr] = pr
 				end
-			elseif string.StartsWith(b, "editor") then
+			elseif string.StartsWith(b, "solid") then
+				sid = true
+			elseif string.StartsWith(b, "editor") or string.StartsWith(b, "side") then
 				break
 			end
 		end
@@ -289,7 +297,7 @@ end
 function vmf.SolidToPhys(solid, optimize)
 	local ptype = DREAMSC_AABB
 	local min, max
-	local nsides = {}
+	local nsides = {DTYPE = "DreamSolid"}
 	local mnormals = {}
 	local smaterial
 	for _, v in pairs(solid.sides) do
@@ -420,31 +428,8 @@ function vmf.ConvertFile(f, optimize)
 	local vents = vmf.ExtractEnts(f)
 	local marks = {}
 	local lights = {}
-	local mnames = {}
 	local props = {}
-
-	for k, v in pairs(vents) do
-		local cname = v.classname
-		if cname == "info_teleport_destination" or cname == "info_target" then
-			local bname = v.targetname or "mark"
-			local name = bname
-			local mark = {
-				pos = v.origin,
-				angles = v.angles,
-			}
-			if mnames[bname] then
-				name = bname .. mnames[bname]
-			end
-			mnames[bname] = (mnames[bname] or 1) + 1
-			marks[name] = mark
-		end
-		if cname == "light" or cname == "light_spot" then
-			table.insert(lights, vmf.ConvertLightEntity(v))
-		end
-		if cname == "prop_static" or cname == "prop_dynamic" then
-			table.insert(props, vmf.ConvertPropEntity(v))
-		end
-	end
+	local triggers = {}
 
 	local min, max
 	local solids = vmf.ExtractSolids(f)
@@ -453,6 +438,48 @@ function vmf.ConvertFile(f, optimize)
 		nsolids[k] = tbl
 		min, max = lib.MinMaxVecs(min or tbl.AA, max or tbl.AA, tbl.AA)
 		min, max = lib.MinMaxVecs(min, max, tbl.BB)
+	end
+
+	for k, v in pairs(vents) do
+		local cname = v.classname
+		if cname == "info_teleport_destination" or cname == "info_target" then
+			local name = v.targetname or cname
+			local mark = {
+				pos = v.origin,
+				angles = v.angles,
+			}
+			if marks[name] then
+				if marks[name].pos then
+					marks[name] = {marks[name]}
+				end
+				table.insert(marks[name], mark)
+			else
+				marks[name] = mark
+			end
+		end
+		if cname == "light" or cname == "light_spot" then
+			table.insert(lights, vmf.ConvertLightEntity(v))
+		end
+		if cname == "prop_static" or cname == "prop_dynamic" then
+			table.insert(props, vmf.ConvertPropEntity(v))
+		end
+		if cname:StartsWith("trigger_") and v.sid then
+			local solid
+			for ks, s in pairs(nsolids) do
+				if s.id == v.sid then
+					solid = s
+					table.remove(nsolids, ks)
+					break
+				end
+			end
+			if solid then
+				local trigger = {
+					name = v.targetname,
+					phys = solid,
+				}
+				table.insert(triggers, trigger)
+			end
+		end
 	end
 
 	for k, v in pairs(props) do
@@ -464,10 +491,12 @@ function vmf.ConvertFile(f, optimize)
 	nsolids.AA = min - Vector(128, 128, 128)
 	nsolids.BB = max + Vector(128, 128, 128)
 	return {
+		DTYPE = "DreamRoom",
 		phys = nsolids,
 		marks = marks,
 		props = props,
 		lights = lights,
+		triggers = triggers,
 	}
 end
 

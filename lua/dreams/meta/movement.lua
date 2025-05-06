@@ -200,10 +200,15 @@ function DREAMS:DoMove(ply, mv)
 		ptbl.DreamRoom = v.Room
 	end
 
-	if onfloor and mv:KeyDown(IN_JUMP) then
-		v_SetUnpacked(vel, vel.x, vel.y, self.JumpPower)
-		ptbl.DREAMS_onfloor = false
-		onfloor = false
+	if mv:KeyDown(IN_JUMP) then
+		if onfloor and not ptbl.DREAMS_didjump then
+			v_SetUnpacked(vel, vel.x, vel.y, self.JumpPower)
+			ptbl.DREAMS_onfloor = false
+			onfloor = false
+			ptbl.DREAMS_didjump = true
+		end
+	elseif onfloor then
+		ptbl.DREAMS_didjump = false
 	end
 
 	if not onfloor and ptbl.DREAMS_onfloor then

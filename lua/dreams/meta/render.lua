@@ -129,6 +129,17 @@ function DREAMS:Draw(ply, debug)
 			end
 		end
 		render.DrawWireframeBox(porg, Angle(), Vector(-rad, -rad, 0), Vector(rad, rad, height), didhit and Color(0, 255, 0) or Color(0, 0, 255))
+	elseif debug == 2 and ply.DreamRoom then
+		local marks = ply.DreamRoom.marks
+		for k, v in pairs(marks) do
+			if not v.pos then
+				for a, b in pairs(v) do
+					render.DrawWireframeSphere(b.pos, 3, 3, 3, b.Color or Color(255, 0, 0), false)
+				end
+			else
+				render.DrawWireframeSphere(v.pos, 3, 3, 3, v.Color or Color(255, 0, 0), false)
+			end
+		end
 	end
 end
 

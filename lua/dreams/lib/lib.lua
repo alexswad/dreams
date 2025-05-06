@@ -171,7 +171,7 @@ function lib.IntersectABCylinderWithPlane(cylOrg, rad, height, org, pnormal, ver
 	local pcheck = hit + (org - hit):GetNormalized() * math_abs(d) / 2
 
 	if verts then
-		local n_verts = table_Count(verts)
+		local n_verts = #verts + 1
 		for i = 0, n_verts - 1 do
 			if not check(verts[i], verts[(i + 1) % n_verts], verts[(i + 2) % n_verts], pcheck) then
 				return false
@@ -238,6 +238,32 @@ function lib.TraceRayPhys(phys, start, dir, dist)
 	end
 
 	return chit, cfrac, cnormal, csolid, cside
+end
+
+local InterCylAABB = lib.IntersectABCylinderWithAABB
+local InterCylOBB = lib.IntersectABCylinderWithOBB
+local InterCylPlane = lib.IntersectABCylinderWithPlane
+local v_WithinAABox = vmeta.WithinAABox
+
+function lib.IntersectCylPhys(phys, origin, rad, height)
+	for a, s in ipairs(phys) do
+		local t = s.PType
+		if t == DREAMSC_AABB then
+			local hit, norm, dist = InterCylAABB(origin, rad, height, s.AA, s.BB)
+			if hit then return norm, dist end
+		elseif t == DREAMSC_OBB then
+			local axes = s.OBB_Axes
+			local hit, norm, dist = InterCylOBB(origin, rad, height, s.Origin, s.OBB_Ang, s.OBB_Min, s.OBB_Max, axes[1], axes[2], axes[3])
+			if hit then return norm, dist end
+		elseif t == DREAMSC_PLANE then
+			for b, side in ipairs(s) do
+				if not v_WithinAABox(origin, s.PAA, s.PBB) then continue end
+				local pnorm = side.normal
+				local hit, phit = InterCylPlane(origin, rad, height, side.origin, pnorm, side.verts)
+				if hit then return pnorm, phit end
+			end
+		end
+	end
 end
 ---------------------------
 function lib.RectToMeshEx(l, w, h, off, ignore, reverse, um, vm)

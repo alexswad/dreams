@@ -118,14 +118,22 @@ end
 
 --------------------------------------------
 
+local function offset_marks(marks, offset)
+	for k, v in pairs(marks) do
+		if not v.pos then
+			offset_marks(v, offset)
+		else
+			v.pos = v.pos + offset
+		end
+	end
+end
+
 function DREAMS:AddRoom(name, mdl, phy, offset)
 	offset = offset or vector_origin
 	local tbl = Dreams.Bundle.Load(phy, "GAME")
 	if tbl then
 		if tbl.marks then
-			for k, v in pairs(tbl.marks) do
-				v.pos = v.pos + offset
-			end
+			offset_marks(tbl.marks, offset)
 		end
 
 		if tbl.props then
@@ -144,6 +152,14 @@ function DREAMS:AddRoom(name, mdl, phy, offset)
 			Dreams.Lib.PhysOffset(tbl.phys, offset)
 			tbl.phys.Room = self.Rooms[name]
 			table.insert(self.Phys, tbl.phys)
+		end
+
+		if tbl.triggers then
+			self.Rooms[name].triggers = {}
+			for k, v in pairs(tbl.triggers) do
+				Dreams.Lib.PhysOffset({v.phys}, offset)
+				self.Rooms[name].triggers[v.name] = v
+			end
 		end
 	else
 		self.Rooms[name] = {name = name, mdl = mdl}
