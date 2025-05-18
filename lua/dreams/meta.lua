@@ -160,7 +160,12 @@ function DREAMS:AddRoom(name, mdl, phy, offset)
 			for k, v in pairs(tbl.triggers) do
 				if not v.name then v.name = #room.triggers + 1 end
 				Dreams.Lib.PhysOffset({v.phys}, offset)
-				if room.triggers[v.name] then table.Add(room.triggers[v.name].phys, v.phys) end
+				if room.triggers[v.name] then
+					local etrig = room.triggers[v.name]
+					if etrig.phys.AA then etrig.phys = {etrig.phys} end
+					table.insert(etrig.phys, v.phys)
+					continue
+				end
 				room.triggers[v.name] = v
 			end
 		end
