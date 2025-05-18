@@ -24,9 +24,11 @@ local v_WithinAABox = vmeta.WithinAABox
 local v_Dot = vmeta.Dot
 local v_IsEqualTol = vmeta.IsEqualTol
 local v_SetUnpacked = vmeta.SetUnpacked
+local v_Mul = vmeta.Mul
 
 local math_min = math.min
 local math_max = math.max
+--local math_abs = math.abs
 local FrameTime = FrameTime
 local Vector = Vector
 local Angle = Angle
@@ -77,7 +79,8 @@ function DREAMS:StartMove(ply, mv, cmd)
 	get_move(cmd, pos, ang)
 
 	v_Normalize(pos)
-	local vel = ply_GetAbsVelocity(ply) * 0.9 + pos * speed
+	v_Mul(pos, speed)
+	local vel = ply_GetAbsVelocity(ply) * 0.9 + pos
 	if v_IsEqualTol(vel, vector_origin, 3) then
 		vel:Zero()
 	end
@@ -171,15 +174,16 @@ function DREAMS:DoMove(ply, mv)
 				if not v_WithinAABox(org, s.PAA, s.PBB) then continue end
 				for b, side in ipairs(s) do
 					local pnorm = side.normal
-					local pres, phit = InterCylPlane(org, 16, 64, side.origin, pnorm, side.verts)
+					local pres, phit = InterCylPlane(morg, 16, 64, side.origin, pnorm, side.verts, side.size)
 					if pres  then
 						local hnorm = pnorm
 						if v_IsEqualTol(pnorm, vector_up, 0.3) then
 							onfloor = true
 							hnorm = vector_up
 						end
-						morg = morg + pnorm * math.abs(math_min(5, v_Dot(phit - org, -pnorm))) * FrameTime()
-						org = morg + vel * FrameTime()
+						local ft = FrameTime()
+						morg = morg + pnorm * (math_max(0, v_Dot(morg - phit, pnorm)) * 3 * ft)
+						org = morg + vel * ft
 						vel = vel + hnorm * math_max(0, v_Dot(vel, -hnorm))
 						vel = vel + pnorm * math_max(0, v_Dot(vel, -pnorm))
 					end

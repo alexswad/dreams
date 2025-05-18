@@ -59,7 +59,7 @@ else
 			if dream then
 				dream:Start(ply)
 			else
-				for k, v in pairs(player.GetAll()) do
+				for k, v in ipairs(player.GetAll()) do
 					v:SetRenderOrigin(nil)
 					v:SetPos(v:GetNetworkOrigin())
 				end
@@ -120,7 +120,7 @@ hook.Add("PlayerFootstep", "!!!dreams_footstep", function(ply)
 end)
 
 hook.Add("PrePlayerDraw", "!!!dreams_DrawPlayer", function(ply, flags)
-	if ply:GetDreamID() ~= LocalPlayer():GetDreamID() then
+	if ply:GetDreamID() ~= LocalPlayer():GetDreamID() and not ply.Dreams_FDraw then
 		if not LocalPlayer():IsDreaming() then
 			ply:SetNetworkOrigin(ply:GetPos() + Vector(0, 0, -2500)) -- hide real players from people who are not dreaming
 		else
@@ -128,6 +128,7 @@ hook.Add("PrePlayerDraw", "!!!dreams_DrawPlayer", function(ply, flags)
 		end
 		return true
 	end
+	ply.Dreams_FDraw = false
 end)
 
 hook.Add("EntityTakeDamage", "!!!!dreams_TakeDamage", function(ent, dmg)

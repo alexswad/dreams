@@ -329,7 +329,8 @@ function vmf.SolidToPhys(solid, optimize)
 			normal = normal,
 			material = v.material,
 			id = v.id,
-			origin = middle
+			origin = middle,
+			size = pmax:DistToSqr(pmin)
 		}
 		table.insert(nsides, side)
 	end
@@ -356,8 +357,8 @@ function vmf.SolidToPhys(solid, optimize)
 	elseif ptype == DREAMSC_AABB then
 		nsides.HalfExtents = lib.HalfExtentsFromBox(min, max)
 	elseif ptype == DREAMSC_PLANE then
-		nsides.PAA = min - Vector(128, 128, 128)
-		nsides.PBB = max + Vector(128, 128, 128)
+		nsides.PAA = min - Vector(64, 64, 64)
+		nsides.PBB = max + Vector(64, 64, 64)
 	end
 
 	if optimize and (ptype == DREAMSC_AABB or ptype == DREAMSC_OBB) then
@@ -376,6 +377,7 @@ end
 function vmf.ConvertPropEntity(v)
 	local prop = {
 		model = v.model,
+		scale = v.modelscale,
 		skin = v.skin,
 		origin = v.origin,
 		angles = v.angles,
@@ -394,8 +396,9 @@ function vmf.ConvertPropEntity(v)
 	local obmin, obmax = ent:OBBMins(), ent:OBBMaxs()
 	local phys = ent:GetPhysicsObject()
 	local mesh = IsValid(phys) and phys:GetMesh() or util.GetModelMeshes(prop.model) and util.GetModelMeshes(prop.model)[1]
-	if not IsValid(phys) then Dreams.Debug("Prop " .. v.model .. " has no physics, treating as displacement") end
+	if prop.solid ~= 0 and not IsValid(phys) then Dreams.Debug("Prop " .. v.model .. " has no physics, treating as displacement") end
 	SafeRemoveEntity(ent)
+	SafeRemoveEntityDelayed(ent, 2)
 
 	if prop.solid == 2 and obmin then
 		prop.phys = lib.GeneratePhysOBB(v.origin, obmin, obmax, v.angles)
@@ -405,8 +408,8 @@ function vmf.ConvertPropEntity(v)
 		local cside = {}
 		local cplane = {}
 		for i, b in ipairs(mesh.triangles or mesh) do
-			cside[(i - 1) % 3 + 1] = b.pos
-			cplane[(i - 1) % 3 + 1] = b.pos
+			cside[(i - 1) % 3 + 1] = b.pos * (prop.scale or 1)
+			cplane[(i - 1) % 3 + 1] = b.pos * (prop.scale or 1)
 			if (i - 1) % 3 + 1 == 3 then
 				table.insert(sides, {
 					vertices_plus = cside,
@@ -461,7 +464,16 @@ function vmf.ConvertFile(f, optimize)
 			table.insert(lights, vmf.ConvertLightEntity(v))
 		end
 		if cname == "prop_static" or cname == "prop_dynamic" then
-			table.insert(props, vmf.ConvertPropEntity(v))
+			if cname == "prop_static" then
+				local phys = vmf.ConvertPropEntity(v).phys
+				if phys then
+					table.insert(nsolids, phys)
+					min, max = lib.MinMaxVecs(min or phys.AA, max or phys.AA, phys.AA)
+					min, max = lib.MinMaxVecs(min, max, phys.BB)
+				end
+			else
+				table.insert(props, vmf.ConvertPropEntity(v))
+			end
 		end
 		if cname:StartsWith("trigger_") and v.sid then
 			local solid
@@ -485,9 +497,10 @@ function vmf.ConvertFile(f, optimize)
 	for k, v in pairs(props) do
 		tbl = v.phys
 		if not tbl then continue end
-		min, max = lib.MinMaxVecs(min or tbl.AA + v.origin, max or tbl.AA + v.origin, tbl.AA + v.origin)
-		min, max = lib.MinMaxVecs(min, max, tbl.BB + v.origin)
+		min, max = lib.MinMaxVecs(min or tbl.AA, max or tbl.AA, tbl.AA)
+		min, max = lib.MinMaxVecs(min, max, tbl.BB)
 	end
+
 	nsolids.AA = min - Vector(128, 128, 128)
 	nsolids.BB = max + Vector(128, 128, 128)
 	return {

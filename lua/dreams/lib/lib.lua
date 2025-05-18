@@ -4,10 +4,12 @@ local vmeta = FindMetaTable("Vector")
 local Vector = Vector
 local Angle = Angle
 local v_DistToSqr = vmeta.DistToSqr
--- local v_Sub = vmeta.Sub
--- local v_Add = vmeta.Add
+local v_Sub = vmeta.Sub
+local v_Add = vmeta.Add
+local v_Mul = vmeta.Mul
 local v_Unpack = vmeta.Unpack
 local v_Dot = vmeta.Dot
+local v_Set = vmeta.Set
 local v_SetUnpacked = vmeta.SetUnpacked
 local LocalToWorld = LocalToWorld
 local WorldToLocal = WorldToLocal
@@ -24,9 +26,29 @@ local table = table
 local table_Count = table.Count
 local vector_up = Vector(0, 0, 1)
 ---------------------------------------------------------
+
+local v_MemCross = function(v1, v2)
+	local x1, y1, z1 = v_Unpack(v1)
+	local x2, y2, z2 = v_Unpack(v2)
+	v_SetUnpacked(v1, y1 * z2 - z1 * y2, z1 * x2 - x1 * z2, x1 * y2 - y1 * x2)
+end
+
+local mem1, mem2, mem3, cr1, cr2 = Vector(), Vector(), Vector(), Vector(), Vector()
 local function check(a, b, c, p)
-	local cr1 = v_Cross(b - a, c - a)
-	local cr2 = v_Cross(b - a, p - a)
+	v_Set(mem1, b)
+	v_Sub(mem1, a)
+
+	v_Set(mem2, c)
+	v_Sub(mem2, a)
+
+	v_Set(mem3, p)
+	v_Sub(mem3, a)
+
+	v_Set(cr1, mem1)
+	v_MemCross(cr1, mem2)
+
+	v_Set(cr2, mem1)
+	v_MemCross(cr2, mem3)
 	return v_Dot(cr1, cr2) >= 0
 end
 lib.InsideOutTest = check
@@ -159,16 +181,22 @@ function lib.IntersectSphereWithOBB(sorg, rad, org, angle, boxmin, boxmax)
 	return true, tmag, tvec
 end
 
-function lib.IntersectABCylinderWithPlane(cylOrg, rad, height, org, pnormal, verts)
+local pcheck = Vector()
+function lib.IntersectABCylinderWithPlane(cylOrg, rad, height, org, pnormal, verts, size)
 	local ox, oy, oz = v_Unpack(org)
 	local cx, cy, cz = v_Unpack(cylOrg)
 
 	v_SetUnpacked(mvec, cx - ox, cy - oy, cz - oz + height / 2)
 	local d = v_Dot(pnormal, mvec)
-	if math_abs(d) > rad + math_abs(v_Dot(pnormal, vector_up) * height / 4) then return false end
+	if math_abs(d) > rad + math_abs(v_Dot(pnormal, vector_up) * height / 4) or size and v_DistToSqr(cylOrg, org) - size - 64 > (height + rad * 2) ^ 2 then return false end
 
-	local hit = Vector(cx, cy, cz + height / 2) - pnormal * d
-	local pcheck = hit + (org - hit):GetNormalized() * math_abs(d) / 2
+	local hit = Vector(cx, cy, cz + height / 2)
+	v_Sub(hit, pnormal * d)
+	v_Set(pcheck, org)
+	v_Sub(pcheck, hit)
+	v_Normalize(pcheck)
+	v_Mul(pcheck, math_abs(d) / 2)
+	v_Add(pcheck, hit)
 
 	if verts then
 		local n_verts = #verts + 1
@@ -461,8 +489,8 @@ end
 function lib.SolidFixBounds(solid)
 	local min, max
 	for k, tbl in ipairs(solid) do
-		min, max = lib.MinMaxVecs(min or solid.AA + tbl.origin, max or solid.AA + tbl.origin, solid.AA + tbl.origin)
-		min, max = lib.MinMaxVecs(min, max, solid.BB + tbl.origin)
+		min, max = lib.MinMaxVecs(min or solid.AA, max or solid.AA, solid.AA)
+		min, max = lib.MinMaxVecs(min, max, solid.BB)
 
 		for a, vert in pairs(tbl.verts or {}) do
 			min, max = lib.MinMaxVecs(min, max, vert)

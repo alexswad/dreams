@@ -7,18 +7,25 @@ local ipairs = ipairs
 
 local ang_zero = Angle(0, 0, 0)
 local lib = Dreams.Lib
-function DREAMS:Draw(ply, debug)
+function DREAMS:Draw(ply, rt, debug)
 	debug = debug or self.Debug
 	local porg = ply:GetDTVector(31)
-	ply:SetPos(porg)
-	ply:SetNetworkOrigin(porg)
+	if not rt then
+		ply:SetPos(porg)
+		ply:SetNetworkOrigin(porg)
+	end
+
 	for k, v in ipairs(self.ListRooms) do
 		if not IsValid(v.CMDL) and v.CMDL ~= false then
 			v.CMDL = v.mdl and ClientsideModelSafe(v.mdl, RENDERGROUP_BOTH) or false
-			v.CMDL:SetNoDraw(true)
-			v.CMDL:SetRenderOrigin(v.mdl_origin or v.offset)
+			if v.CMDL then
+				v.CMDL:SetNoDraw(true)
+				v.CMDL:SetRenderOrigin(v.mdl_origin or v.offset)
+				v.CMDL:SetRenderAngles(v.mdl_angles or ang_zero)
+				if v.SetupCMDL then v:SetupCMDL(v.CMDL) end
+			end
 		end
-		if debug == 0 and ply.DreamRoom and ply.DreamRoom ~= v then continue end
+		if debug == 0 and not rt and ply.DreamRoom and ply.DreamRoom ~= v then continue end
 
 		render.SuppressEngineLighting(true)
 		render.SetAmbientLight(0, 0 , 0)
@@ -39,6 +46,7 @@ function DREAMS:Draw(ply, debug)
 					b.CMDL:SetNoDraw(true)
 					b.CMDL:SetRenderOrigin(b.origin)
 					b.CMDL:SetRenderAngles(b.angles)
+					if b.scale then b.CMDL:SetModelScale(b.scale) end
 				elseif b.CMDL == false then continue end
 				b.CMDL:DrawModel()
 			end
@@ -50,6 +58,7 @@ function DREAMS:Draw(ply, debug)
 		if v:GetDreamID() ~= self.ID or v == ply then continue end
 		render.SuppressEngineLighting(true)
 
+		v.Dreams_FDraw = true
 		v:SetNetworkOrigin(v:GetDTVector(31))
 
 		if not v.DreamRoomCache or v.DreamRoomCache < CurTime() then
@@ -79,22 +88,22 @@ function DREAMS:Draw(ply, debug)
 				ent:GetPuppet():SetPos(v:GetDreamPos())
 			end
 		end
-
 		render.SuppressEngineLighting(false)
 	end
 
+	--if debug ~= 0 and not ply.DreamRoom then ply.DreamRoom = self.ListRooms[1] end
 	if debug == 1 and ply.DreamRoom then
 		local height = 64
 		local rad = 16
 		local res, norm, middle = false
 		local didhit = false
+		local phys = ply.DreamRoom.phys
+		if not phys then return end
 
-		local thit = lib.TraceRayPhys(ply.DreamRoom.phys, ply:EyePos(), ply:EyeAngles():Forward(), 100)
+		local thit = lib.TraceRayPhys(phys, ply:EyePos(), ply:EyeAngles():Forward(), 100)
 
 		render.DrawLine(ply:EyePos() - Vector(0, 10, 10), ply:EyePos() + ply:EyeAngles():Forward() * 100, thit and Color(0, 255, 0) or Color(255, 0 , 0), false)
-
-		for k, v in ipairs(ply.DreamRoom.phys) do
-
+		for k, v in ipairs(phys) do
 			if v.PType == DREAMSC_AABB then
 				render.DrawWireframeBox(vector_origin, ang_zero, v.AA, v.BB, Color(255, 0, 0), true)
 			elseif v.PType == DREAMSC_OBB then
@@ -131,6 +140,7 @@ function DREAMS:Draw(ply, debug)
 		render.DrawWireframeBox(porg, Angle(), Vector(-rad, -rad, 0), Vector(rad, rad, height), didhit and Color(0, 255, 0) or Color(0, 0, 255))
 	elseif debug == 2 and ply.DreamRoom then
 		local marks = ply.DreamRoom.marks
+		if not marks then return end
 		for k, v in pairs(marks) do
 			if not v.pos then
 				for a, b in pairs(v) do
@@ -138,6 +148,28 @@ function DREAMS:Draw(ply, debug)
 				end
 			else
 				render.DrawWireframeSphere(v.pos, 3, 3, 3, v.Color or Color(255, 0, 0), false)
+			end
+		end
+	elseif debug == 3 and ply.DreamRoom then
+		local phys = ply.DreamRoom.phys
+		if not phys then return end
+		for k, v in ipairs(phys) do
+			if v.AA then
+				render.DrawWireframeBox(vector_origin, ang_zero, v.AA, v.BB, Color(255, 0, 0), true)
+			end
+			if v.PAA then
+				render.DrawWireframeBox(vector_origin, ang_zero, v.PAA, v.PBB, Color(228, 11, 199), true)
+			end
+		end
+
+		if not phys.AA then return end
+		render.DrawWireframeBox(vector_origin, ang_zero, phys.AA, phys.BB, Color(11, 228, 22), true)
+	elseif debug == 4 and ply.DreamRoom then
+		local phys = ply.DreamRoom.phys
+		if not phys then return end
+		for k, v in ipairs(phys) do
+			for _, s in ipairs(v) do
+				render.DrawWireframeSphere(s.origin, 5, 5, 5, Color(255, 0, 0))
 			end
 		end
 	end
@@ -152,18 +184,19 @@ function DREAMS:CalcView(ply, view)
 	view.origin = ply:GetDTVector(31) + height
 end
 
-function DREAMS:RenderScene(ply)
-	local view = {
-		origin = origin,
-		angles = angles,
-		fov = fov,
+function DREAMS:RenderScene(ply, rt)
+	local view = rt or {
+		origin = vector_origin,
+		angles = ang_zero,
 	}
+
 	if not self:SetupFog(ply) then render.FogMode(MATERIAL_FOG_NONE) end
-	self:CalcView(ply, view)
-	cam.Start3D(view.origin, view.angles, view.fov, 0, 0, ScrW(), ScrH())
-	self:Draw(ply)
+	if not rt then self:CalcView(ply, view) end
+	cam.Start3D(view.origin, view.angles, view.fov, 0, 0, view.w or ScrW(), view.h or ScrH())
+	self:Draw(ply, rt)
 	cam.End3D()
 
+	if rt then return true end
 	cam.Start2D()
 	self:DrawHUD(ply, ScrW(), ScrH())
 	cam.End2D()

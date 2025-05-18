@@ -1,5 +1,8 @@
+local D_VERSION = 1.1
+if Dreams and Dreams._VERSION > D_VERSION then print("[DREAMS v" .. D_VERSION .. "] Newer version of Dreams already loaded, skipping") return end
+
 Dreams = Dreams or {}
-Dreams._VERSION = 1.0
+Dreams._VERSION = D_VERSION
 
 AddCSLuaFile("dreams/hooks.lua")
 AddCSLuaFile("dreams/meta.lua")
@@ -59,3 +62,5 @@ end
 Dreams.Init = Init
 Dreams.LoadDreams = LoadDreams
 LoadDreams()
+print("[DREAMS v" .. D_VERSION .. "] Fully Loaded!")
+hook.Run("DREAMS_LOADED")

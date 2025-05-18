@@ -146,19 +146,22 @@ function DREAMS:AddRoom(name, mdl, phy, offset)
 			end
 		end
 
-		self.Rooms[name] = {marks = tbl.marks, name = name, mdl = mdl, phys = tbl.phys, phy_string = phy, offset = offset, props = tbl.props}
+		local room = {marks = tbl.marks, name = name, mdl = mdl, phys = tbl.phys, phy_string = phy, offset = offset, props = tbl.props}
+		self.Rooms[name] = room
 
 		if tbl.phys then
 			Dreams.Lib.PhysOffset(tbl.phys, offset)
-			tbl.phys.Room = self.Rooms[name]
+			tbl.phys.Room = room
 			table.insert(self.Phys, tbl.phys)
 		end
 
 		if tbl.triggers then
-			self.Rooms[name].triggers = {}
+			room.triggers = {}
 			for k, v in pairs(tbl.triggers) do
+				if not v.name then v.name = #room.triggers + 1 end
 				Dreams.Lib.PhysOffset({v.phys}, offset)
-				self.Rooms[name].triggers[v.name] = v
+				if room.triggers[v.name] then table.Add(room.triggers[v.name].phys, v.phys) end
+				room.triggers[v.name] = v
 			end
 		end
 	else
@@ -221,9 +224,9 @@ end
 
 if SERVER then
 	function DREAMS:Start(ply)
-		local starts = ents.FindByClass("info_player_start")
+		local starts = ents.FindByClass("info_player_*")
 		local start = starts[math.random(#starts)] or starts[1]
-		ply:SetPos((IsValid(start) and start:GetPos() + Vector(0, 0, 64) or vector_origin) + Angle(0, math.Rand(-360, 360), 45):Forward() * math.random(100, 180))
+		ply:SetPos((IsValid(start) and start:GetPos() + Vector(0, 0, 64) or vector_origin) + Angle(0, math.Rand(-360, 360), 10):Forward() * 10)
 		ply:DropToFloor()
 		ply:SetNoTarget(true)
 		ply:SetActiveWeapon(NULL)
@@ -277,7 +280,7 @@ if SERVER then
 			filter = RecipientFilter()
 			filter:AddAllPlayers()
 		end
-		for k, v in pairs(player.GetAll()) do
+		for k, v in ipairs(player.GetAll()) do
 			if v:IsDreaming() then
 				filter:RemovePlayer(v)
 			end

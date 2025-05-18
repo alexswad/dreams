@@ -3,9 +3,7 @@ if not DREAMS then
 	return
 end
 
-DREAMS:AddRoom("rainhallway", "models/rooms/rain_hallway.mdl", "data_static/dreams/test/rain_hallway.dat", Vector(10, 10, -100))
 
--- DREAMS.StartMove = DREAMS.StartMoveFly -- Helper function
 -- These are the move hooks you can replace and/or call
 -- DREAMS:StartMove(ply, mv, cmd)
 -- DREAMS:DoMove(ply, mv)
@@ -24,9 +22,9 @@ if SERVER then
 		if Dreams.Meta.EntityTakeDamage(self, ply, attacker, inflictor, dmg) then return true end -- Will prevent anything but players in dreams from hurting dreaming players
 	end
 else
-	function DREAMS:Draw(ply)
+	function DREAMS:Draw(ply, rt)
 		-- Will draw room models and players for you, draw other clientside models or entities after
-		Dreams.Meta.Draw(self, ply, self.Debug)  -- Argument 3 - DEBUG: 0 = nothing, 1 = Draw BBoxes, 2 = Draw Face Normals, 3 = Draw Normal + z-BBox
+		Dreams.Meta.Draw(self, ply, rt)
 	end
 
 	function DREAMS:DrawHUD(ply, w, h)
@@ -53,7 +51,7 @@ end
 
 function DREAMS:Start(ply) -- Player is actually in a world position so that they're properly networked, then positioned clientside
 	Dreams.Meta.Start(self, ply) -- Setups the player's positioning in the world. You would normally want to call this unless you know what your doing
-	if SERVER then ply:SetDreamPos(self.Rooms["rainhallway"].marks["test"].pos) end -- Spawn the player at our info_teleport_destination
+	--if SERVER then ply:SetDreamPos(self.Rooms["rainhallway"].marks["test"].pos) end -- Spawn the player at our info_teleport_destination
 end
 
 function DREAMS:End(ply)
@@ -65,7 +63,7 @@ function DREAMS:SwitchWeapon(ply, old, new) -- return true to prevent, default w
 end
 
 function DREAMS:KeyPress(ply, key)
-	if CLIENT and key == IN_USE then self.Debug = (self.Debug or 0) % 2 + 1 end
+	if CLIENT and key == IN_USE then self.Debug = ((self.Debug or 0) + 1) % 5 end
 end
 
 -- If defined, will automatically create a DREAMS.NetEntity for easy networking
