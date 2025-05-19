@@ -382,6 +382,7 @@ function vmf.ConvertPropEntity(v)
 		origin = v.origin,
 		angles = v.angles,
 		solid = tonumber(v.solid) or 2,
+		name = v.targetname,
 	}
 	util.PrecacheModel(prop.model)
 
@@ -427,12 +428,18 @@ function vmf.ConvertPropEntity(v)
 end
 
 function vmf.ConvertFile(f, optimize)
+	if not f then return false end
 	local nsolids = {}
 	local vents = vmf.ExtractEnts(f)
 	local marks = {}
 	local lights = {}
 	local props = {}
 	local triggers = {}
+
+	local mdl_angles
+	local mdl_origin
+	local mdl
+	local mdl_scale
 
 	local min, max
 	local solids = vmf.ExtractSolids(f)
@@ -465,14 +472,30 @@ function vmf.ConvertFile(f, optimize)
 		end
 		if cname == "prop_static" or cname == "prop_dynamic" then
 			if cname == "prop_static" then
-				local phys = vmf.ConvertPropEntity(v).phys
+				local tbl = vmf.ConvertPropEntity(v)
+				local phys = tbl and tbl.phys
 				if phys then
 					table.insert(nsolids, phys)
 					min, max = lib.MinMaxVecs(min or phys.AA, max or phys.AA, phys.AA)
 					min, max = lib.MinMaxVecs(min, max, phys.BB)
 				end
 			else
-				table.insert(props, vmf.ConvertPropEntity(v))
+				local tbl = vmf.ConvertPropEntity(v)
+				if tbl.name and tbl.name:lower() == "room" then
+					mdl_origin = tbl.origin
+					mdl_angles = tbl.angles
+					mdl = tbl.model
+					mdl_scale = tbl.scale
+
+					local phys = tbl.phys
+					if phys then
+						table.insert(nsolids, phys)
+						min, max = lib.MinMaxVecs(min or phys.AA, max or phys.AA, phys.AA)
+						min, max = lib.MinMaxVecs(min, max, phys.BB)
+					end
+				else
+					table.insert(props, tbl)
+				end
 			end
 		end
 		if cname:StartsWith("trigger_") and v.sid then
@@ -510,6 +533,10 @@ function vmf.ConvertFile(f, optimize)
 		props = props,
 		lights = lights,
 		triggers = triggers,
+		mdl_angles = mdl_angles,
+		mdl_origin = mdl_origin,
+		mdl_scale = mdl_scale,
+		mdl = mdl,
 	}
 end
 
@@ -522,6 +549,7 @@ if SERVER then
 		name = name[#name]:StripExtension()
 		local f = file.Read(args[1]:Trim(), "GAME")
 		local data = vmf.ConvertFile(f, true)
+		if not data then Dreams.Print("Failed to convert file (Does it exist?)") return end
 		vmf.SaveLights(name, data.lights)
 		Dreams.Bundle.Save(data, name)
 	end, autocomplete)

@@ -146,7 +146,18 @@ function DREAMS:AddRoom(name, mdl, phy, offset)
 			end
 		end
 
-		local room = {marks = tbl.marks, name = name, mdl = mdl, phys = tbl.phys, phy_string = phy, offset = offset, props = tbl.props}
+		local room = {
+			marks = tbl.marks,
+			name = name,
+			mdl = mdl or tbl.mdl,
+			mdl_origin = tbl.mdl_origin,
+			mdl_angles = tbl.mdl_angles,
+			mdl_scale = tbl.mdl_scale,
+			phys = tbl.phys,
+			phy_string = phy,
+			offset = offset,
+			props = tbl.props,
+		}
 		self.Rooms[name] = room
 
 		if tbl.phys then

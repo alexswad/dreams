@@ -29,8 +29,9 @@ function DREAMS:Draw(ply, rt, debug)
 			v.CMDL = v.mdl and ClientsideModelSafe(v.mdl, RENDERGROUP_BOTH) or false
 			if v.CMDL then
 				v.CMDL:SetNoDraw(true)
-				v.CMDL:SetRenderOrigin(v.mdl_origin or v.offset)
+				v.CMDL:SetRenderOrigin(v.mdl_origin and v.offset + v.mdl_origin or v.offset)
 				v.CMDL:SetRenderAngles(v.mdl_angles or ang_zero)
+				v.CMDL:SetModelScale(v.mdl_scale or 1)
 				if v.SetupCMDL then v:SetupCMDL(v.CMDL) end
 			end
 		end
