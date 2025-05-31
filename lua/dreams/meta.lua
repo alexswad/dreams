@@ -35,6 +35,8 @@ local ply_GetDTInt = emeta.GetDTInt
 local Vector = Vector
 local Angle = Angle
 
+Dreams.EMPTY_ROOM = {name = "none", notvalid = true, phys = {}}
+
 ------------------------------------------
 
 function pmeta:IsDreaming()
@@ -110,7 +112,7 @@ if SERVER then
 	end
 
 	function pmeta:SetDreamPos(pos)
-		self.DreamRoom = nil
+		self.DreamRoom = Dreams.EMPTY_ROOM
 		ply_SetDTVector(self, 31, pos)
 	end
 end
@@ -180,6 +182,30 @@ function DREAMS:AddRoom(name, mdl, phy, offset)
 				room.triggers[v.name] = v
 			end
 		end
+
+		if tbl.entities then
+			room.entities = {}
+			for k, v in pairs(tbl.entities) do
+				local phys = tostring(v.phys)
+				v.phys = nil
+				for _, s in pairs(tbl.phys or {}) do
+					if tostring(s.id) == phys then
+						s.Entity = v
+						v.phys = s
+						break
+					end
+				end
+
+				if not v.name then v.name = #room.entities + 1 end
+				if room.entities[v.name] then
+					local etbl = room.entities[v.name]
+					if etbl.phys.AA then etbl.phys = {etbl.phys} end
+					table.insert(etbl.phys, v.phys)
+					continue
+				end
+				room.entities[v.name] = v
+			end
+		end
 	else
 		self.Rooms[name] = {name = name, mdl = mdl}
 	end
@@ -242,11 +268,12 @@ if SERVER then
 	function DREAMS:Start(ply)
 		local starts = ents.FindByClass("info_player_*")
 		local start = starts[math.random(#starts)] or starts[1]
-		ply:SetPos((IsValid(start) and start:GetPos() + Vector(0, 0, 64) or vector_origin) + Angle(0, math.Rand(-360, 360), 10):Forward() * 10)
+		ply:SetPos((IsValid(start) and start:GetPos() + Vector(0, 0, 64) or vector_origin) + Angle(0, math.Rand(-360, 360), 30):Forward() * 10)
 		ply:DropToFloor()
 		ply:SetNoTarget(true)
 		ply:SetActiveWeapon(NULL)
 		ply:SetMoveType(MOVETYPE_NONE)
+		ply.DreamRoom = Dreams.EMPTY_ROOM
 	end
 
 	function DREAMS:ThinkSelf()
@@ -258,7 +285,7 @@ if SERVER then
 	end
 
 	function DREAMS:End(ply)
-		local starts = ents.FindByClass("info_player_start")
+		local starts = ents.FindByClass("info_player_*")
 		local start = starts[math.random(#starts)] or starts[1]
 		ply:SetPos(IsValid(start) and start:GetPos() + Vector(0, 0, 1) or ply:GetPos())
 		ply:SetAbsVelocity(vector_origin)

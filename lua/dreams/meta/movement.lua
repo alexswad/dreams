@@ -65,15 +65,17 @@ local function get_move(cmd, pos, ang)
 end
 Dreams.Meta.TranslateMovement = get_move
 
-function DREAMS:StartMove(ply, mv, cmd)
+function DREAMS:StartMove(ply, mv, cmd, speed)
 	mv_SetVelocity(mv, ply_GetAbsVelocity(ply))
 	mv_SetOrigin(mv, mv_GetOrigin(mv))
 	if ply:IsBot() then cmd:AddKey(IN_FORWARD) end
 	local ang = mv_GetMoveAngles(mv)
 	local pos = Vector(0, 0, 0)
-	local speed = self.MoveSpeed
-	if cmd_KeyDown(cmd, IN_SPEED) then
-		speed = self.ShiftSpeed
+	if not speed then
+		speed = self.MoveSpeed
+		if cmd_KeyDown(cmd, IN_SPEED) then
+			speed = self.ShiftSpeed
+		end
 	end
 
 	get_move(cmd, pos, ang)
@@ -161,8 +163,10 @@ function DREAMS:DoMove(ply, mv)
 	local ptbl = ply_GetTable(ply)
 	local onfloor
 	for k, v in ipairs(self.Phys) do
+		if v.Disabled then continue end
 		if not v_WithinAABox(org, v.AA, v.BB) then continue end
 		for a, s in ipairs(v) do
+			if s.Disabled then continue end
 			local t = s.PType
 			local res, norm, hit
 			if t == DREAMSC_AABB then

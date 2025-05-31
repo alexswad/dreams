@@ -40,27 +40,42 @@ local function LoadDreams()
 	end
 
 	if Dreams.HasInit then
+		if SERVER then
+			for k, v in pairs(ents.FindByClass("dreams_net")) do
+				SafeRemoveEntity(v)
+			end
+		end
 		Dreams.Init()
 	end
 end
 
+local models = {}
 local function Init()
 	Dreams.HasInit = true
 	for k, v in pairs(Dreams.List) do
 		for a, room in ipairs(v.ListRooms) do
-			if not room.Props then continue end
-			for b, prop in ipairs(room.Props) do
+			if room.mdl and not models[room.mdl] then
+				util.PrecacheModel(room.mdl)
+				print("DREAMS: Precached " .. room.mdl)
+				models[room.mdl] = true
+			end
+
+			if not room.props then continue end
+			for b, prop in ipairs(room.props) do
+				if not prop.model or models[prop.model] then continue end
 				util.PrecacheModel(prop.model)
 				print("DREAMS: Precached " .. prop.model)
+				models[prop.model] = true
 			end
 		end
 		if v.SetupDataTables then v:CheckNetwork() v:SetupDataTables() end
 		if v.Init then v:Init() end
 	end
+	hook.Run("DREAMS_INIT_DONE")
 end
 
 Dreams.Init = Init
 Dreams.LoadDreams = LoadDreams
 LoadDreams()
-print("[DREAMS v" .. D_VERSION .. "] Fully Loaded!")
+print("[DREAMS v" .. D_VERSION .. "] Loaded!")
 hook.Run("DREAMS_LOADED")

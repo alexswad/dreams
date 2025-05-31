@@ -21,9 +21,32 @@ function DREAMS:Draw(ply, rt, debug)
 	local porg = ply:GetDTVector(31)
 	if not rt then
 		ply:SetPos(porg)
-		ply:SetNetworkOrigin(porg)
+		--ply:SetNetworkOrigin(porg)
 	end
 
+	self:RenderRooms(ply, rt or debug ~= 0)
+	self:RenderPlayers(ply, rt or debug ~= 0)
+	self:RenderDebug(ply, debug)
+end
+
+function DREAMS:DrawPropModel(b)
+	if not IsValid(b.CMDL) and b.CMDL ~= false then
+		b.CMDL = b.model and ClientsideModelSafe(b.model) or false
+		b.CMDL:SetNoDraw(true)
+		b.CMDL:SetRenderOrigin(b.origin)
+		b.CMDL:SetRenderAngles(b.angles)
+		if b.scale then b.CMDL:SetModelScale(b.scale) end
+	elseif b.CMDL == false then return end
+	b.CMDL:DrawModel()
+end
+
+function DREAMS:RenderProps(props)
+	for a, b in ipairs(props) do
+		self:DrawPropModel(b)
+	end
+end
+
+function DREAMS:RenderRooms(ply, drawall)
 	for k, v in ipairs(self.ListRooms) do
 		if not IsValid(v.CMDL) and v.CMDL ~= false then
 			v.CMDL = v.mdl and ClientsideModelSafe(v.mdl, RENDERGROUP_BOTH) or false
@@ -35,7 +58,7 @@ function DREAMS:Draw(ply, rt, debug)
 				if v.SetupCMDL then v:SetupCMDL(v.CMDL) end
 			end
 		end
-		if debug == 0 and not rt and ply.DreamRoom and ply.DreamRoom ~= v then continue end
+		if not drawall and ply and ply.DreamRoom and ply.DreamRoom ~= v then continue end
 
 		render.SuppressEngineLighting(true)
 		render.SetAmbientLight(0, 0 , 0)
@@ -50,20 +73,13 @@ function DREAMS:Draw(ply, rt, debug)
 		end
 
 		if v.props then
-			for a, b in ipairs(v.props) do
-				if not IsValid(b.CMDL) and b.CMDL ~= false then
-					b.CMDL = b.model and ClientsideModelSafe(b.model) or false
-					b.CMDL:SetNoDraw(true)
-					b.CMDL:SetRenderOrigin(b.origin)
-					b.CMDL:SetRenderAngles(b.angles)
-					if b.scale then b.CMDL:SetModelScale(b.scale) end
-				elseif b.CMDL == false then continue end
-				b.CMDL:DrawModel()
-			end
+			self:RenderProps(v.props)
 		end
 		render.SuppressEngineLighting(false)
 	end
+end
 
+function DREAMS:RenderPlayers(ply, drawall)
 	for k, v in ipairs(player.GetAll()) do
 		if v:GetDreamID() ~= self.ID or v == ply then continue end
 		render.SuppressEngineLighting(true)
@@ -82,6 +98,7 @@ function DREAMS:Draw(ply, rt, debug)
 			v.DreamRoomCache = CurTime() + 0.1
 		end
 
+		if v.DreamRoom ~= ply.DreamRoom and not drawall then continue end
 		if v.DreamRoom and v.DreamRoom.MdlLighting then
 			render.ResetModelLighting(v.DreamRoom.MdlLighting[1], v.DreamRoom.MdlLighting[2], v.DreamRoom.MdlLighting[3])
 		else
@@ -100,8 +117,11 @@ function DREAMS:Draw(ply, rt, debug)
 		end
 		render.SuppressEngineLighting(false)
 	end
+end
 
-	--if debug ~= 0 and not ply.DreamRoom then ply.DreamRoom = self.ListRooms[1] end
+function DREAMS:RenderDebug(ply, debug)
+	if not ply then return end
+	local porg = ply:GetDTVector(31)
 	if debug == 1 and ply.DreamRoom then
 		local height = 64
 		local rad = 16
@@ -110,14 +130,15 @@ function DREAMS:Draw(ply, rt, debug)
 		local phys = ply.DreamRoom.phys
 		if not phys then return end
 
-		local thit = lib.TraceRayPhys(phys, ply:EyePos(), ply:EyeAngles():Forward(), 100)
+		local thit, _, _, csolid, cside = lib.TraceRayPhys(phys, ply:EyePos(), ply:EyeAngles():Forward(), 100)
+		--print(csolid and csolid.id, cside and cside.id)
 
 		render.DrawLine(ply:EyePos() - Vector(0, 10, 10), ply:EyePos() + ply:EyeAngles():Forward() * 100, thit and d_green or d_red, false)
 		for k, v in ipairs(phys) do
 			if v.PType == DREAMSC_AABB then
-				render.DrawWireframeBox(vector_origin, ang_zero, v.AA, v.BB, d_red, true)
+				render.DrawWireframeBox(vector_origin, ang_zero, v.AA, v.BB, d_red, false)
 			elseif v.PType == DREAMSC_OBB then
-				render.DrawWireframeBox(v.Origin or vector_origin, v.OBB_Ang or ang_zero, v.OBB_Min or v.AA, v.OBB_Max or v.BB, d_purple, true)
+				render.DrawWireframeBox(v.Origin or vector_origin, v.OBB_Ang or ang_zero, v.OBB_Min or v.AA, v.OBB_Max or v.BB, d_purple, false)
 			elseif v.PType == DREAMSC_PLANE then
 				for _, s in ipairs(v) do
 					local pres, hit = lib.IntersectABCylinderWithPlane(porg, rad, height, s.origin, s.normal, s.verts, s.size)
@@ -138,9 +159,9 @@ function DREAMS:Draw(ply, rt, debug)
 				res, norm, middle = lib.IntersectABCylinderWithAABB(porg, rad, height, v.AA, v.BB)
 			end
 			if res and norm and v.PType ~= DREAMSC_PLANE then
-				render.DrawWireframeSphere(v.Origin, 3, 3, 3, d_red, true)
+				render.DrawWireframeSphere(v.Origin, 3, 3, 3, d_red, false)
 				middle = middle * norm + porg
-				render.DrawWireframeSphere(middle, 3, 3, 3, d_red, true)
+				render.DrawWireframeSphere(middle, 3, 3, 3, d_red, false)
 				local rot, rot_end, rot_three = middle, middle + norm * 25, middle + norm * 50
 				render.DrawLine(rot, rot_end, d_red, false)
 				render.DrawLine(rot_end, rot_three, d_green, false)
@@ -148,29 +169,40 @@ function DREAMS:Draw(ply, rt, debug)
 			end
 		end
 		render.DrawWireframeBox(porg, Angle(), Vector(-rad, -rad, 0), Vector(rad, rad, height), didhit and d_green or d_blue)
+		return csolid and csolid.id, cside and cside.id
 	elseif debug == 2 and ply.DreamRoom then
 		local marks = ply.DreamRoom.marks
-		if not marks then return end
-		for k, v in pairs(marks) do
-			if not v.pos then
-				for a, b in ipairs(v) do
-					render.DrawWireframeSphere(b.pos, 3, 3, 3, b.Color or d_red, false)
+		if marks then
+			for k, v in pairs(marks) do
+				if not v.pos then
+					for a, b in ipairs(v) do
+						render.DrawWireframeSphere(b.pos, 3, 3, 3, b.Color or d_red, false)
+					end
+				else
+					render.DrawWireframeSphere(v.pos, 3, 3, 3, v.Color or d_red, false)
 				end
-			else
-				render.DrawWireframeSphere(v.pos, 3, 3, 3, v.Color or d_red, false)
 			end
 		end
+
 		local triggers = ply.DreamRoom.triggers
-		if not triggers then return end
-		for k, v in pairs(triggers) do
-			v = v.phys
-			if not v.AA then
-				for a, b in ipairs(v) do
-					render.DrawWireframeBox(vector_origin, ang_zero, b.AA, b.BB, d_orange, true)
+		if triggers then
+			for k, v in pairs(triggers) do
+				v = v.phys
+				if not v.AA then
+					for a, b in ipairs(v) do
+						render.DrawWireframeBox(vector_origin, ang_zero, b.AA, b.BB, d_orange, false)
+					end
+				else
+					render.DrawWireframeBox(vector_origin, ang_zero, v.AA, v.BB, d_orange, false)
 				end
-			else
-				render.DrawWireframeBox(vector_origin, ang_zero, v.AA, v.BB, d_orange, true)
 			end
+		end
+
+		local entities = ply.DreamRoom.entities
+		if not entities then return end
+		for k, v in pairs(entities) do
+			v = v.phys
+			render.DrawWireframeBox(vector_origin, ang_zero, v.AA, v.BB, d_pink, false)
 		end
 	elseif debug == 3 and ply.DreamRoom then
 		local phys = ply.DreamRoom.phys
@@ -185,7 +217,7 @@ function DREAMS:Draw(ply, rt, debug)
 		end
 
 		if not phys.AA then return end
-		render.DrawWireframeBox(vector_origin, ang_zero, phys.AA, phys.BB, d_green, true)
+		render.DrawWireframeBox(vector_origin, ang_zero, phys.AA, phys.BB, d_green, false)
 	elseif debug == 4 and ply.DreamRoom then
 		local phys = ply.DreamRoom.phys
 		if not phys then return end

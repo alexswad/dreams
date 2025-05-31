@@ -11,30 +11,34 @@ local types = {
 	["Float"] = true,
 }
 
+function DREAMS:NetSafe()
+	return IsValid(self.NetEntity)
+end
+
 function DREAMS:NetworkVar(type, slot, name)
 	assert(types[type or 0], "Invalid network type")
 	assert(slot and name, "Missing arguements")
 	if type == "Vector" then
-		self["Get" .. name] = function(d) return d:GetDTVector(slot) end
-		self["Set" .. name] = function(d, v) d:SetDTVector(slot, v) end
+		self["Get" .. name] = function(d, b) if not d:NetSafe() then return b end return d:GetDTVector(slot, b) end
+		self["Set" .. name] = function(d, v) if not d:NetSafe() then return end d:SetDTVector(slot, v) end
 	elseif type == "Angle" then
-		self["Get" .. name] = function(d) return d:GetDTAngle(slot) end
-		self["Set" .. name] = function(d, v) d:SetDTAngle(slot, v) end
+		self["Get" .. name] = function(d, b) if not d:NetSafe() then return b end return d:GetDTAngle(slot, b) end
+		self["Set" .. name] = function(d, v) if not d:NetSafe() then return end d:SetDTAngle(slot, v) end
 	elseif type == "Bool" then
-		self["Get" .. name] = function(d) return d:GetDTBool(slot) end
-		self["Set" .. name] = function(d, v) d:SetDTBool(slot, v) end
+		self["Get" .. name] = function(d, b) if not d:NetSafe() then return b end return d:GetDTBool(slot, b) end
+		self["Set" .. name] = function(d, v) if not d:NetSafe() then return end d:SetDTBool(slot, v) end
 	elseif type == "Entity" then
-		self["Get" .. name] = function(d) return d:GetDTEntity(slot) end
-		self["Set" .. name] = function(d, v) d:SetDTEntity(slot, v) end
+		self["Get" .. name] = function(d, b) if not d:NetSafe() then return b end return d:GetDTEntity(slot, b) end
+		self["Set" .. name] = function(d, v) if not d:NetSafe() then return end d:SetDTEntity(slot, v) end
 	elseif type == "Int" then
-		self["Get" .. name] = function(d) return d:GetDTInt(slot) end
-		self["Set" .. name] = function(d, v) d:SetDTInt(slot, v) end
+		self["Get" .. name] = function(d, b) if not d:NetSafe() then return b end return d:GetDTInt(slot, b) end
+		self["Set" .. name] = function(d, v) if not d:NetSafe() then return end d:SetDTInt(slot, v) end
 	elseif type == "String" then
-		self["Get" .. name] = function(d) return d:GetDTString(slot) end
-		self["Set" .. name] = function(d, v) d:SetDTString(slot, v) end
+		self["Get" .. name] = function(d, b) if not d:NetSafe() then return b end return d:GetDTString(slot, b) end
+		self["Set" .. name] = function(d, v) if not d:NetSafe() then return end d:SetDTString(slot, v) end
 	elseif type == "Float" then
-		self["Get" .. name] = function(d) return d:GetDTFloat(slot) end
-		self["Set" .. name] = function(d, v) d:SetDTFloat(slot, v) end
+		self["Get" .. name] = function(d, b) if not d:NetSafe() then return b end return d:GetDTFloat(slot, b) end
+		self["Set" .. name] = function(d, v) if not d:NetSafe() then return end d:SetDTFloat(slot, v) end
 	end
 end
 

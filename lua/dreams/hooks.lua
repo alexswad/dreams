@@ -3,6 +3,7 @@ function Dreams.AddHooks()
 		hook.Add("RenderScene", "!!dreams_RenderDreams", function(origin, angles, fov)
 			local ply = LocalPlayer()
 			if not ply.IsDreaming or not ply:IsDreaming() then return end
+			ply.DreamRoom = ply.DreamRoom or Dreams.EMPTY_ROOM
 			local dream = ply:GetDream()
 			return dream:RenderScene(ply)
 		end)
@@ -58,10 +59,10 @@ function Dreams.AddHooks()
 			if last_dream ~= (dream and dream.ID or 0) then
 				if Dreams.List[last_dream] then Dreams.List[last_dream]:End(ply) end
 				if dream then
+					ply.DreamRoom = Dreams.EMPTY_ROOM
 					dream:Start(ply)
 				else
 					for k, v in ipairs(player.GetAll()) do
-						v:SetRenderOrigin(nil)
 						v:SetPos(v:GetNetworkOrigin())
 					end
 				end
@@ -121,11 +122,10 @@ function Dreams.AddHooks()
 	end)
 
 	hook.Add("PrePlayerDraw", "!!!dreams_DrawPlayer", function(ply, flags)
-		if ply:GetDreamID() ~= LocalPlayer():GetDreamID() and not ply.Dreams_FDraw then
+		if ply ~= LocalPlayer() and ply:GetDreamID() ~= LocalPlayer():GetDreamID() and not ply.Dreams_FDraw then
 			if not LocalPlayer():IsDreaming() then
 				ply:SetNetworkOrigin(ply:GetPos() + Vector(0, 0, -2500)) -- hide real players from people who are not dreaming
-			else
-				ply:SetNetworkOrigin(ply:GetPos())
+				ply:DrawShadow(false)
 			end
 			return true
 		end

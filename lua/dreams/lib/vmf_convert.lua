@@ -300,7 +300,7 @@ function vmf.SolidToPhys(solid, optimize)
 	local nsides = {DTYPE = "DreamSolid"}
 	local mnormals = {}
 	local smaterial
-	for _, v in pairs(solid.sides) do
+	for k, v in pairs(solid.sides) do
 		local verts = v.vertices_plus or v.verts
 		if not verts then Dreams.Print("VMF is missing important information, re-open with Hammer++ and save before converting") error("Missing index vertices_plus") end
 		if not is_square(verts) then ptype = DREAMSC_PLANE end
@@ -377,7 +377,7 @@ end
 function vmf.ConvertPropEntity(v)
 	local prop = {
 		model = v.model,
-		scale = v.modelscale,
+		scale = tonumber(v.modelscale),
 		skin = v.skin,
 		origin = v.origin,
 		angles = v.angles,
@@ -435,6 +435,7 @@ function vmf.ConvertFile(f, optimize)
 	local lights = {}
 	local props = {}
 	local triggers = {}
+	local entities = {}
 
 	local mdl_angles
 	local mdl_origin
@@ -444,7 +445,7 @@ function vmf.ConvertFile(f, optimize)
 	local min, max
 	local solids = vmf.ExtractSolids(f)
 	for k, v in pairs(solids) do
-		local tbl = vmf.SolidToPhys(v, true)
+		local tbl = vmf.SolidToPhys(v, optimize)
 		nsolids[k] = tbl
 		min, max = lib.MinMaxVecs(min or tbl.AA, max or tbl.AA, tbl.AA)
 		min, max = lib.MinMaxVecs(min, max, tbl.BB)
@@ -515,6 +516,24 @@ function vmf.ConvertFile(f, optimize)
 				table.insert(triggers, trigger)
 			end
 		end
+
+		if cname:StartsWith("func_") and v.sid then
+			local solid
+			for ks, s in pairs(nsolids) do
+				if s.id == v.sid then
+					solid = s
+					break
+				end
+			end
+			if solid then
+				local ent = {
+					name = v.targetname,
+					phys = v.sid,
+					class = cname,
+				}
+				table.insert(entities, ent)
+			end
+		end
 	end
 
 	for k, v in pairs(props) do
@@ -522,6 +541,36 @@ function vmf.ConvertFile(f, optimize)
 		if not tbl then continue end
 		min, max = lib.MinMaxVecs(min or tbl.AA, max or tbl.AA, tbl.AA)
 		min, max = lib.MinMaxVecs(min, max, tbl.BB)
+	end
+
+	if optimize then
+		local rem = {}
+		for k, v in ipairs(nsolids) do
+			if v.PType == DREAMSC_PLANE then
+				for a, b in ipairs(v) do
+					for _, d in ipairs(nsolids) do
+						if d.PType ~= DREAMSC_AABB then continue end
+						local cont
+						for _, vert in pairs(b.verts) do
+							if not vert:WithinAABox(d.AA, d.BB) then
+								cont = true
+								break
+							end
+						end
+						if cont then continue end
+						rem[k] = rem[k] or {}
+						rem[k][b] = true
+						break
+					end
+				end
+			end
+		end
+
+		for k, v in pairs(rem) do
+			for a, _ in pairs(v) do
+				table.RemoveByValue(nsolids[k], a)
+			end
+		end
 	end
 
 	nsolids.AA = min - Vector(128, 128, 128)
@@ -537,6 +586,7 @@ function vmf.ConvertFile(f, optimize)
 		mdl_origin = mdl_origin,
 		mdl_scale = mdl_scale,
 		mdl = mdl,
+		entities = entities,
 	}
 end
 
