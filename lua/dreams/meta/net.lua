@@ -1,6 +1,9 @@
 local Dreams = Dreams
 local DREAMS = Dreams.Meta
 
+DREAMS.NetReceivers = {}
+DREAMS.NetSenders = {}
+
 local types = {
 	["Vector"] = true,
 	["Angle"] = true,

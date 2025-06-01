@@ -182,6 +182,9 @@ function DREAMS:DoMove(ply, mv)
 					if pres  then
 						local hnorm = pnorm
 						if v_IsEqualTol(pnorm, vector_up, 0.3) then
+							if SERVER and vel.z < -100 then
+								self:TakeFallDamage(ply, math.abs(vel.z))
+							end
 							onfloor = true
 							hnorm = vector_up
 						end
@@ -196,6 +199,9 @@ function DREAMS:DoMove(ply, mv)
 
 			if res then
 				if v_IsEqualTol(norm, vector_up, 0.5) then
+					if SERVER and vel.z < -100 then
+						self:TakeFallDamage(ply, math.abs(vel.z))
+					end
 					onfloor = true
 				else
 					ptbl.DREAMS_onfloor = false

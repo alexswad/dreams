@@ -1,3 +1,11 @@
+local Dreams = Dreams
+local emeta = FindMetaTable("Entity")
+local pmeta = FindMetaTable("Player")
+
+local DREAMS = {}
+DREAMS.__index = DREAMS
+Dreams.Meta = DREAMS
+
 AddCSLuaFile("dreams/meta/movement.lua")
 AddCSLuaFile("dreams/meta/net.lua")
 AddCSLuaFile("dreams/meta/render.lua")
@@ -14,14 +22,6 @@ hook.Add("PostCleanupMap", "ClientSideModelSafe_Clear", function()
 	end
 	table.Empty(CLIENTSAFE_MODELS)
 end)
-
-local Dreams = Dreams
-local emeta = FindMetaTable("Entity")
-local pmeta = FindMetaTable("Player")
-
-local DREAMS = {}
-DREAMS.__index = DREAMS
-Dreams.Meta = DREAMS
 
 include("dreams/meta/movement.lua")
 include("dreams/meta/net.lua")
@@ -291,7 +291,31 @@ if SERVER then
 		ply:SetAbsVelocity(vector_origin)
 		self:SendEndCommand(ply)
 	end
+
+	DREAMS:AddNetSender("falldamage", function(dream, int) net.WriteInt(int, 32) end)
+	function DREAMS:TakeFallDamage(ply, speed)
+		local dmg = self:GetFallDamage(ply, speed)
+		if not isnumber(dmg) or dmg < 1 then return end
+		local dinfo = DamageInfo()
+		dinfo:SetDamageType(DMG_FALL)
+		dinfo:SetDamage(dmg)
+		dinfo:SetAttacker(ply)
+		ply:TakeDamageInfo(dinfo)
+		self:SendCommand("falldamage", ply, speed)
+	end
+
+	function DREAMS:GetFallDamage(ply, speed)
+		return hook.Run("GetFallDamage", ply, speed)
+	end
 else
+	DREAMS:AddNetReceiver("falldamage", function(dream, ply)
+		dream:TakeFallDamage(ply, net.ReadInt(32))
+	end)
+
+	function DREAMS:TakeFallDamage(ply, speed)
+		ply:EmitSound("player/pl_fallpain3.wav")
+	end
+
 	function DREAMS:Start(ply)
 	end
 
