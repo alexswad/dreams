@@ -329,6 +329,29 @@ end
 
 function DREAMS:Think(ply)
 end
+----------------------------------
+local ang_zero = Angle(0, 0, 0)
+local vmin, vmax = Vector(-16, -16, 0), Vector(16, 16, 64)
+function DREAMS:TracePlayers(room, start, dir, dist, ignore)
+	local chit, cfrac = Dreams.Lib.TraceRayPhys(self.Rooms[room].phys or {}, start, dir, dist)
+	local ndist = chit and (cfrac * dist) ^ 2 + 32 ^ 2
+	print(cfrac, ndist)
+	local ply, ply_dist
+	for k, v in ipairs(player.GetAll()) do
+		if not v.DreamRoom or v.DreamRoom.name ~= room or v:GetDreamID() ~= self.ID or ignore and ignore[v] then continue end
+
+
+		local hit = util.IntersectRayWithOBB(start, dir * dist, v:GetDreamPos(), ang_zero, vmin, vmax)
+		if not hit then continue end
+		local pdist = hit:DistToSqr(start)
+		print(pdist, ndist)
+		if chit and pdist > ndist or ply_dist and ply_dist < pdist then continue end
+
+		ply = v
+		ply_dist = pdist
+	end
+	return ply
+end
 
 ----------------------------------
 pmeta.O_GetActiveWeapon = pmeta.O_GetActiveWeapon or pmeta.GetActiveWeapon

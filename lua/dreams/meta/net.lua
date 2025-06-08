@@ -226,6 +226,7 @@ if SERVER then
 	function DREAMS:SendCommand(str, ply, data)
 		assert(self.NetSenders[str], "Net Command " .. str .. " not defined")
 		net.Start("dreams_netcommands")
+		net.WriteUInt(self.ID, 32)
 		net.WriteString(str)
 		self.NetSenders[str](self, data)
 		net.Send(ply)
@@ -233,6 +234,7 @@ if SERVER then
 
 	function DREAMS:SendEndCommand(ply)
 		net.Start("dreams_netcommands")
+		net.WriteUInt(self.ID, 32)
 		net.WriteString("end")
 		net.WriteEntity(ply)
 		net.Broadcast()
@@ -255,14 +257,15 @@ else
 	end
 
 	net.Receive("dreams_netcommands", function(len, ply)
-		local dream = LocalPlayer():GetDream()
-		if not dream then return end
+		local id = net.ReadUInt(32)
+		local dream = Dreams.List[id]
 		local cmd = net.ReadString()
 		if cmd == "end" then
 			local ent = net.ReadEntity()
 			ent:SetDream(0)
 			return
 		end
+		if not dream then return end
 		assert(dream.NetReceivers[cmd or ""], "Net Receiver " .. (cmd or "<bad data>") .. " not defined")
 		dream.NetReceivers[cmd](dream, LocalPlayer())
 	end)

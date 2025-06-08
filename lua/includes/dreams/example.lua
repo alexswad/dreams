@@ -12,7 +12,9 @@ DREAMS.MoveSpeed = 40
 DREAMS.ShiftSpeed = 60
 DREAMS.JumpPower = 400
 DREAMS.Gravity = 600
-DREAMS.Debug = 0
+DREAMS.Debug = 1
+
+DREAMS:AddRoom("rainhallway", "models/rooms/rain_hallway.mdl", "data_static/dreams/test/rain_hallway.dat", Vector(10, 10, -100))
 
 if SERVER then
 	function DREAMS:ThinkSelf() -- Called before any player think, allows for updating ent positions & dream variables

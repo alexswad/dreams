@@ -51,6 +51,7 @@ function Dreams.AddHooks()
 		hook.Add("PlayerDeath", "!!dreams_Death", ondeath)
 		hook.Add("PlayerSilentDeath", "!!dreams_Death", ondeath)
 	else
+		local stopsound = CreateClientConVar("cl_dreams_stopsound", "1", true, false, "If set to 1, all sounds will be stopped when entering a Dream.", 0, 1)
 		local last_dream = 0
 		hook.Add("Think", "!!!dreams_Think", function()
 			local ply = LocalPlayer()
@@ -60,6 +61,11 @@ function Dreams.AddHooks()
 				if Dreams.List[last_dream] then Dreams.List[last_dream]:End(ply) end
 				if dream then
 					ply.DreamRoom = Dreams.EMPTY_ROOM
+					if stopsound:GetBool() then
+						timer.Simple(0.2, function()
+							RunConsoleCommand("stopsound")
+						end)
+					end
 					dream:Start(ply)
 				else
 					for k, v in ipairs(player.GetAll()) do
@@ -121,10 +127,11 @@ function Dreams.AddHooks()
 		if ply:IsDreaming() or CLIENT and LocalPlayer():IsDreaming() then return true end
 	end)
 
+	local magic_vector = Vector(-7777, -7777, -7777) -- it's magic, you knowwwow, never believe its not soooo
 	hook.Add("PrePlayerDraw", "!!!dreams_DrawPlayer", function(ply, flags)
 		if ply ~= LocalPlayer() and ply:GetDreamID() ~= LocalPlayer():GetDreamID() and not ply.Dreams_FDraw then
 			if not LocalPlayer():IsDreaming() then
-				ply:SetNetworkOrigin(ply:GetPos() + Vector(0, 0, -2500)) -- hide real players from people who are not dreaming
+				ply:SetNetworkOrigin(magic_vector) -- hide real players from people who are not dreaming
 				ply:DrawShadow(false)
 			end
 			return true

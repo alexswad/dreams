@@ -72,6 +72,7 @@ local function Init()
 		if v.Init then v:Init() end
 	end
 	hook.Run("DREAMS_INIT_DONE")
+	Dreams.Debug("Init done")
 end
 
 Dreams.Init = Init
