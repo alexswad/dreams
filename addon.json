@@ -9,6 +9,7 @@
 		"*.svn*",
 		"*.png",
 		"*.vmf",
-		".git/*"
+		".git/*",
+		"README.md"
 	]
 }
