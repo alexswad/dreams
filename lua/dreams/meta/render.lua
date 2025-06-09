@@ -58,6 +58,18 @@ function DREAMS:RenderRooms(ply, drawall)
 				if v.SetupCMDL then v:SetupCMDL(v.CMDL) end
 			end
 		end
+
+		if game.SinglePlayer() and (not v.DreamRoomCache or v.DreamRoomCache < CurTime()) then
+			local pos = ply:GetDreamPos()
+			for a, room in ipairs(self.ListRooms) do
+				if room.phys and pos:WithinAABox(room.phys.AA, room.phys.BB) then
+					ply.DreamRoom = room
+					break
+				end
+			end
+			ply.DreamRoomCache = CurTime() + 0.1
+		end
+
 		if not drawall and ply and ply.DreamRoom and ply.DreamRoom ~= v then continue end
 
 		render.SuppressEngineLighting(true)
