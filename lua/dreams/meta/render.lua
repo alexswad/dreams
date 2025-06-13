@@ -47,6 +47,17 @@ function DREAMS:RenderProps(props)
 end
 
 function DREAMS:RenderRooms(ply, drawall)
+	if game.SinglePlayer() and (not ply.DreamRoomCache or ply.DreamRoomCache < CurTime()) then
+		local pos = ply:GetDreamPos()
+		for a, room in ipairs(self.ListRooms) do
+			if room.phys and pos:WithinAABox(room.phys.AA, room.phys.BB) then
+				ply.DreamRoom = room
+				break
+			end
+		end
+		ply.DreamRoomCache = CurTime() + 0.1
+	end
+	
 	for k, v in ipairs(self.ListRooms) do
 		if not IsValid(v.CMDL) and v.CMDL ~= false then
 			v.CMDL = v.mdl and ClientsideModelSafe(v.mdl, RENDERGROUP_BOTH) or false
@@ -57,17 +68,6 @@ function DREAMS:RenderRooms(ply, drawall)
 				v.CMDL:SetModelScale(v.mdl_scale or 1)
 				if v.SetupCMDL then v:SetupCMDL(v.CMDL) end
 			end
-		end
-
-		if game.SinglePlayer() and (not v.DreamRoomCache or v.DreamRoomCache < CurTime()) then
-			local pos = ply:GetDreamPos()
-			for a, room in ipairs(self.ListRooms) do
-				if room.phys and pos:WithinAABox(room.phys.AA, room.phys.BB) then
-					ply.DreamRoom = room
-					break
-				end
-			end
-			ply.DreamRoomCache = CurTime() + 0.1
 		end
 
 		if not drawall and ply and ply.DreamRoom and ply.DreamRoom ~= v then continue end

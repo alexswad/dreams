@@ -65,7 +65,7 @@ local function get_move(cmd, pos, ang)
 end
 Dreams.Meta.TranslateMovement = get_move
 
-function DREAMS:StartMove(ply, mv, cmd, speed)
+function DREAMS:StartMove(ply, mv, cmd, speed, jump, grav)
 	mv_SetVelocity(mv, ply_GetAbsVelocity(ply))
 	mv_SetOrigin(mv, mv_GetOrigin(mv))
 	if ply:IsBot() then cmd:AddKey(IN_FORWARD) end
@@ -87,9 +87,11 @@ function DREAMS:StartMove(ply, mv, cmd, speed)
 		vel:Zero()
 	end
 
+	ply.DREAMS_TempJumpPower = jump
+
 	if ply.DREAMS_onfloor then v_SetUnpacked(vel, vel.x, vel.y, math.Clamp(vel.z, -3, 3))
 	elseif vel.z < 0 then v_SetUnpacked(vel, vel.x, vel.y, math_max(math_min(vel.z, -1) * 1.111, -1400)) end
-	v_Add(vel, Vector(0, 0, -self.Gravity * FrameTime()))
+	v_Add(vel, Vector(0, 0, -(grav or self.Gravity) * FrameTime()))
 	mv_SetVelocity(mv, vel)
 	return true
 end
@@ -216,8 +218,9 @@ function DREAMS:DoMove(ply, mv)
 
 	if mv:KeyDown(IN_JUMP) then
 		if onfloor and not ptbl.DREAMS_didjump then
-			v_SetUnpacked(vel, vel.x, vel.y, self.JumpPower)
+			v_SetUnpacked(vel, vel.x, vel.y, ptbl.DREAMS_TempJumpPower or self.JumpPower)
 			ptbl.DREAMS_onfloor = false
+			ptbl.DREAMS_TempJumpPower = nil
 			onfloor = false
 			ptbl.DREAMS_didjump = true
 		end

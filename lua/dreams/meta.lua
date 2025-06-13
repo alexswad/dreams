@@ -219,43 +219,9 @@ end
 -- end
 ----------------------------------------
 
--- please dont patch this rubat :(
 if CLIENT then
-	local open_chat = chat.Open
-	local close_chat = chat.Close
-	local chatbox
-	local cviewport
-	hook.Add("StartChat", "!!!!Dreams_gethuds", function()
-		if IsValid(chatbox) then return end
-		timer.Simple(0.2, function()
-			chatbox = IsValid(vgui.GetKeyboardFocus()) and vgui.GetKeyboardFocus():GetParent():GetParent()
-			if not IsValid(chatbox) or chatbox:GetClassName() ~= "CHudChat" then return end
-			cviewport = chatbox:GetParent()
-		end)
-	end)
-
-	local opened
-	function DREAMS:DrawHUD(ply, w, h, skip_glua)
-		if not opened and chatbox == nil then
-			opened = true
-			open_chat(1)
-			timer.Simple(0.25, close_chat)
-		end
-		if chatbox and chatbox:GetClassName() == "CHudChat" then
-			chatbox:SetPaintedManually(true)
-			chatbox:PaintManual()
-			chatbox:SetPaintedManually(false)
-
-			cviewport:SetPaintedManually(true)
-			cviewport:PaintManual()
-			cviewport:SetPaintedManually(false)
-		end
-
-		if not skip_glua then
-			GetHUDPanel():SetPaintedManually(true)
-			GetHUDPanel():PaintManual()
-			GetHUDPanel():SetPaintedManually(false)
-		end
+	function DREAMS:DrawHUD(ply, w, h)
+		render.RenderHUD(0, 0, w, h)
 	end
 
 	function DREAMS:HUDShouldDraw(ply, str)
@@ -305,7 +271,9 @@ if SERVER then
 	end
 
 	function DREAMS:GetFallDamage(ply, speed)
-		return hook.Run("GetFallDamage", ply, speed)
+		if speed > 500 then
+			return 10
+		end
 	end
 else
 	DREAMS:AddNetReceiver("falldamage", function(dream, ply)
