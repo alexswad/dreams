@@ -90,16 +90,6 @@ local function norm_compare(xdelta, ydelta, zdelta, xsize, ysize, zsize)
 	end
 end
 
-local function highest_mag(xdelta, ydelta, zdelta)
-	local axd = math_abs(xdelta)
-	local ayd = math_abs(ydelta)
-	local azd = math_abs(zdelta)
-	local mags = {{d = "x", axd}, {d = "y", ayd}, {d = "z", azd}}
-	table.sort(mags, function(a, b) return a[1] > b[1] end)
-	return mags[1].d, mags[2].d, mags[3].d
-end
-lib.OrderedHighestMag = highest_mag
-
 local mvec = Vector()
 local function IntersectABCylinderWithAABB(cylOrg, cylRad, cylHeight, boxmin, boxmax)
 	local xmin, ymin, zmin = v_Unpack(boxmin)
@@ -282,13 +272,13 @@ function lib.IntersectCylPhys(phys, origin, rad, height)
 		elseif t == DREAMSC_OBB then
 			local axes = s.OBB_Axes
 			local hit, norm, dist = InterCylOBB(origin, rad, height, s.Origin, s.OBB_Ang, s.OBB_Min, s.OBB_Max, axes[1], axes[2], axes[3])
-			if hit then return norm, dist end
+			if hit then return norm, dist, s end
 		elseif t == DREAMSC_PLANE then
 			for b, side in ipairs(s) do
 				if not v_WithinAABox(origin, s.PAA, s.PBB) then continue end
 				local pnorm = side.normal
 				local hit, phit = InterCylPlane(origin, rad, height, side.origin, pnorm, side.verts)
-				if hit then return pnorm, phit end
+				if hit then return pnorm, phit, s end
 			end
 		end
 	end
