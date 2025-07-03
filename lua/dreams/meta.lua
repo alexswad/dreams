@@ -90,6 +90,7 @@ if SERVER then
 		local cdream = self:GetDream()
 		if cdream then
 			cdream:End(self)
+			cdream:SendEndCommand(self)
 		else
 			self.DREAMS_LastCC = self:GetCustomCollisionCheck()
 			self.DREAMS_LastAP = self:GetAvoidPlayers()
@@ -255,7 +256,6 @@ if SERVER then
 		local start = starts[math.random(#starts)] or starts[1]
 		ply:SetPos(IsValid(start) and start:GetPos() + Vector(0, 0, 1) or ply:GetPos())
 		ply:SetAbsVelocity(vector_origin)
-		self:SendEndCommand(ply)
 	end
 
 	DREAMS:AddNetSender("falldamage", function(dream, int) net.WriteInt(int, 32) end)

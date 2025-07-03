@@ -21,6 +21,13 @@ function Dreams.AddHooks()
 			local dream = ply:GetDream()
 			return dream:EntityEmitSound(tbl)
 		end)
+
+		hook.Add("CalcMainActivity", "!!!dreams_calcmain_override", function(ply, velocity)
+			if not ply.IsDreaming or not ply:IsDreaming() then return end
+			local dream = ply:GetDream()
+			if not dream.CalcMainActivity then return end
+			return dream:CalcMainActivity(ply, velocity)
+		end)
 	end
 
 	if SERVER then
@@ -92,6 +99,12 @@ function Dreams.AddHooks()
 		if not ply:IsDreaming() then return end
 		local dream = ply:GetDream()
 		return dream:DoMove(ply, mv)
+	end)
+
+	hook.Add("VehicleMove", "!!!dreams_domove", function(ply, veh, mv)
+		if not ply:IsDreaming() then return end
+		local dream = ply:GetDream()
+		return dream:DoMove(ply, mv, veh)
 	end)
 
 	hook.Add("FinishMove", "!!!dreams_finishmove", function(ply, mv)

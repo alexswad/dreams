@@ -141,11 +141,12 @@ function DREAMS:RenderDebug(ply, debug)
 		local didhit = false
 		local phys = ply.DreamRoom.phys
 		if not phys then return end
+		local eyepos = ply:GetDreamPos() + ply:GetViewOffset()
 
-		local thit, _, _, csolid, cside = lib.TraceRayPhys(phys, ply:EyePos(), ply:EyeAngles():Forward(), 100)
+		local thit, _, _, csolid, cside = lib.TraceRayPhys(phys, eyepos, ply:EyeAngles():Forward(), 100)
 		--print(csolid and csolid.id, cside and cside.id)
 
-		render.DrawLine(ply:EyePos() - Vector(0, 10, 10), ply:EyePos() + ply:EyeAngles():Forward() * 100, thit and d_green or d_red, false)
+		render.DrawLine(eyepos - Vector(0, 10, 10), eyepos + ply:EyeAngles():Forward() * 100, thit and d_green or d_red, false)
 		for k, v in ipairs(phys) do
 			if v.PType == DREAMSC_AABB then
 				render.DrawWireframeBox(vector_origin, ang_zero, v.AA, v.BB, d_red, false)
@@ -267,4 +268,15 @@ function DREAMS:RenderScene(ply, rt)
 	self:DrawHUD(ply, ScrW(), ScrH())
 	cam.End2D()
 	return true
+end
+
+function DREAMS:CalcMainActivity(ply, velocity)
+	local plyTable = ply:GetTable()
+	plyTable.CalcIdeal = ACT_MP_STAND_IDLE
+	plyTable.CalcSeqOverride = -1
+
+	local len2d = velocity:Length2DSqr()
+	if ( len2d > 22500 ) then plyTable.CalcIdeal = ACT_MP_RUN elseif ( len2d > 0.25 ) then plyTable.CalcIdeal = ACT_MP_WALK end
+
+	return plyTable.CalcIdeal, plyTable.CalcSeqOverride
 end

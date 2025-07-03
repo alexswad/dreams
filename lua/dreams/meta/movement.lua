@@ -224,7 +224,7 @@ function DREAMS:DoMove(ply, mv)
 			onfloor = false
 			ptbl.DREAMS_didjump = true
 		end
-	elseif onfloor then
+	elseif onfloor and ptbl.DREAMS_didjump then
 		ptbl.DREAMS_didjump = false
 	end
 

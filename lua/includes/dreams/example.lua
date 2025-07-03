@@ -26,7 +26,7 @@ if SERVER then
 else
 	function DREAMS:Draw(ply, rt)
 		-- Will draw room models and players for you, draw other clientside models or entities after
-		Dreams.Meta.Draw(self, ply, rt)
+		Dreams.Meta.Draw(self, ply, rt, 1)
 	end
 
 	function DREAMS:DrawHUD(ply, w, h)
@@ -65,7 +65,7 @@ function DREAMS:SwitchWeapon(ply, old, new) -- return true to prevent, default w
 end
 
 function DREAMS:KeyPress(ply, key)
-	if CLIENT and key == IN_USE then self.Debug = ((self.Debug or 0) + 1) % 5 end
+	if CLIENT and IsFirstTimePredicted() and key == IN_USE then self.Debug = ((self.Debug or 0) + 1) % 5 end
 end
 
 -- If defined, will automatically create a DREAMS.NetEntity for easy networking
